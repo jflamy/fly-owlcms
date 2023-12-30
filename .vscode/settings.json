@@ -1,0 +1,5 @@
+{
+    "java.project.explorer.showNonJavaResources": true,
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.configuration.updateBuildConfiguration": "interactive"
+}
