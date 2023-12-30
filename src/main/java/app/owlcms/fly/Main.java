@@ -1,4 +1,4 @@
-package org.vaadin.example;
+package app.owlcms.fly;
 
 import org.jetbrains.annotations.NotNull;
 

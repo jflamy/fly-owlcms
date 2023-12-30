@@ -14,7 +14,7 @@
             "type": "java",
             "name": "Main",
             "request": "launch",
-            "mainClass": "org.vaadin.example.Main",
+            "mainClass": "app.owlcms.fly.Main",
             "vmArgs": "-Dvaadin.frontend.hotdeploy=false",
             "projectName": "project-base"
         }

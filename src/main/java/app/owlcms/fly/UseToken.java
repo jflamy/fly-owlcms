@@ -1,7 +1,9 @@
-package org.vaadin.example;
+package app.owlcms.fly;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -14,7 +16,7 @@ public class UseToken {
 
 	List<String> list = new ArrayList<>();
 
-	public List<String> getApps(String token) {
+	public Map<AppType, App> getApps(String token) {
 		logger.warn("{}", "getApps");
 		ExecutorService executorService = Executors.newSingleThreadExecutor();
 		ProcessBuilder builder = createProcessBuilder(token);
@@ -32,26 +34,28 @@ public class UseToken {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
+		Map<AppType, App> apps = new HashMap<>();
 		for (String s : list) {
 			try {
-				List<String> repos = new ArrayList<>();
-				String command = "fly image show --app " + s + " --json | jq .[].Repository";
-				logger.warn("command {}", command);
+				String command = "fly image show --app " + s + " --json | jq -r .[].Repository";
 				builder.command("/bin/sh", "-c", command);
 				Process process = builder.start();
 				StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
-					logger.warn("repo  {} {}", s, string);
-					repos.add(string);
+					
+					AppType appType = AppType.byImage(string);
+					logger.warn("image '{}' {}",string, appType);
+					App app = new App(s, appType);
+					apps.put(appType, app);
+					logger.warn("{}", app);
 				});
 				executorService.submit(streamGobbler);
 				process.waitFor(5, TimeUnit.SECONDS);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			// to get owlcms or publicresults
-			// fly image show --app APP --json | jq .[].Repository
 		}
-		return list;
+		return apps;
 
 	}
 

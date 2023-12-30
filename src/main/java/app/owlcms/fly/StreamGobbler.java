@@ -1,4 +1,4 @@
-package org.vaadin.example;
+package app.owlcms.fly;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
