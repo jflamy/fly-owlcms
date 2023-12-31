@@ -24,3 +24,4 @@ error-screenshots/
 frontend/generated/
 
 webpack.generated.js
+/fly-manager.jar

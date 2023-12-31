@@ -10,6 +10,8 @@ import com.github.mvysny.vaadinboot.VaadinBoot;
  */
 public final class Main {
     public static void main(@NotNull String[] args) throws Exception {
-        new VaadinBoot().run();
+        VaadinBoot vaadinBoot = new VaadinBoot();
+        vaadinBoot.setAppName("fly-manager");
+		vaadinBoot.run();
     }
 }

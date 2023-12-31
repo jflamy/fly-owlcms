@@ -7,7 +7,7 @@
 	<artifactId>fly-manager</artifactId>
 	<name>owlcms fly.io cloud management</name>
 	<version>1.0-SNAPSHOT</version>
-	<packaging>war</packaging>
+	<packaging>jar</packaging>
 
 	<properties>
 		<maven.compiler.source>17</maven.compiler.source>
@@ -143,31 +143,16 @@
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-war-plugin</artifactId>
-				<version>3.3.1</version>
-			</plugin>
-			<!-- Jetty plugin for easy testing without a server -->
-			<plugin>
-				<groupId>org.eclipse.jetty</groupId>
-				<artifactId>jetty-maven-plugin</artifactId>
-				<version>${jetty.version}</version>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.1.1</version>
 				<configuration>
-					<!-- If using IntelliJ IDEA with autocompilation, this
-                    might cause lots of unnecessary compilations in the
-                    background.-->
-					<scan>2</scan>
-					<!-- Use war output directory to get the webpack files -->
-					<webApp>
-						<allowDuplicateFragmentNames>true</allowDuplicateFragmentNames>
-					</webApp>
+					<archive>
+						<manifest>
+							<mainClass>app.owlcms.fly.Main</mainClass>
+						</manifest>
+					</archive>
 				</configuration>
 			</plugin>
-
-			<!--
-                Take care of synchronizing java dependencies and imports in
-                package.json and main.js files.
-                It also creates webpack.config.js if not exists yet.
-            -->
 			<plugin>
 				<groupId>com.vaadin</groupId>
 				<artifactId>vaadin-maven-plugin</artifactId>
@@ -187,8 +172,16 @@
 		<profile>
 			<!-- Production mode is activated using -Pproduction -->
 			<id>production</id>
+			<properties>
+				<vaadin.productionMode>true</vaadin.productionMode>
+			</properties>
 
 			<dependencies>
+				<dependency>
+					<groupId>com.vaadin</groupId>
+					<artifactId>flow-server-production-mode</artifactId>
+					<scope>compile</scope>
+				</dependency>
 				<!-- Exclude development dependencies from production -->
 				<dependency>
 					<groupId>com.vaadin</groupId>
@@ -201,75 +194,100 @@
 					</exclusions>
 				</dependency>
 			</dependencies>
+
 			<build>
 				<plugins>
 					<plugin>
 						<groupId>com.vaadin</groupId>
 						<artifactId>vaadin-maven-plugin</artifactId>
-						<version>${vaadin.version}</version>
 						<executions>
 							<execution>
 								<goals>
+									<goal>prepare-frontend</goal>
 									<goal>build-frontend</goal>
 								</goals>
 								<phase>compile</phase>
 							</execution>
 						</executions>
 					</plugin>
-				</plugins>
-			</build>
-		</profile>
-
-		<profile>
-			<id>it</id>
-			<build>
-				<plugins>
 					<plugin>
-						<groupId>org.eclipse.jetty</groupId>
-						<artifactId>jetty-maven-plugin</artifactId>
-						<version>${jetty.version}</version>
-						<configuration>
-							<scan>0</scan>
-							<stopPort>8081</stopPort>
-							<stopWait>5</stopWait>
-							<stopKey>${project.artifactId}</stopKey>
-						</configuration>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-shade-plugin</artifactId>
+						<version>3.5.1</version>
 						<executions>
 							<execution>
-								<id>start-jetty</id>
-								<phase>pre-integration-test</phase>
+								<id>rebuild-jar</id>
+								<phase>package</phase>
 								<goals>
-									<goal>start</goal>
+									<goal>shade</goal>
 								</goals>
-							</execution>
-							<execution>
-								<id>stop-jetty</id>
-								<phase>post-integration-test</phase>
-								<goals>
-									<goal>stop</goal>
-								</goals>
+								<configuration>
+									<!--
+									outputFile>target/${project.artifactId}.jar</outputFile -->
+									<createDependencyReducedPom>false</createDependencyReducedPom>
+									<shadedArtifactAttached>false</shadedArtifactAttached>
+									<artifactSet>
+										<includes>
+											<include>*:*</include>
+										</includes>
+									</artifactSet>
+									<filters>
+										<filter>
+											<artifact>*:*</artifact>
+											<excludes>
+												<exclude>META-INF/VERSION.txt</exclude>
+												<exclude>META-INF/LICENSE.txt</exclude>
+												<exclude>META-INF/VERSION</exclude>
+												<exclude>META-INF/LICENSE</exclude>
+												<exclude>META-INF/NOTICE*</exclude>
+												<exclude>META-INF/DEPENDENCIES</exclude>
+												<exclude>META-INF/AL2*</exclude>
+												<exclude>META-INF/LGPL2*</exclude>
+												<exclude>META-INF/buildinfo.xml</exclude>
+												<exclude>LICENSE*</exclude>
+												<exclude>NOTICE*</exclude>
+												<exclude>META-INF/*.SF</exclude>
+												<exclude>META-INF/*.DSA</exclude>
+												<exclude>META-INF/*.RSA</exclude>
+												<exclude>META-INF/*.md</exclude>
+												<exclude>module-info.class</exclude>
+												<exclude>com.vaadin:vaadin-dev</exclude>
+												<exclude>
+													com.vaadin:vaadin-dev-server</exclude>
+											</excludes>
+										</filter>
+									</filters>
+									<transformers>
+										<transformer
+											implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+									</transformers>
+								</configuration>
 							</execution>
 						</executions>
 					</plugin>
-
-					<!-- Runs the integration tests (*IT) after the server is
-					started -->
 					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-failsafe-plugin</artifactId>
-						<version>2.22.2</version>
+						<groupId>com.coderplus.maven.plugins</groupId>
+						<artifactId>copy-rename-maven-plugin</artifactId>
+						<version>1.0</version>
 						<executions>
 							<execution>
+								<id>copy-prerelease</id>
+								<phase>package</phase>
 								<goals>
-									<goal>integration-test</goal>
-									<goal>verify</goal>
+									<goal>copy</goal>
 								</goals>
+								<configuration>
+									<fileSets>
+										<fileSet>
+											<sourceFile>
+												${project.build.directory}/${project.artifactId}-${project.version}.jar</sourceFile>
+											<destinationFile>
+												${project.build.directory}/${project.artifactId}.jar</destinationFile>
+										</fileSet>
+									</fileSets>
+								</configuration>
 							</execution>
 						</executions>
-						<configuration>
-							<trimStackTrace>false</trimStackTrace>
-							<enableAssertions>true</enableAssertions>
-						</configuration>
 					</plugin>
 				</plugins>
 			</build>
