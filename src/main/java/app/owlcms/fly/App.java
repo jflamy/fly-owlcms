@@ -3,7 +3,7 @@ package app.owlcms.fly;
 public class App implements Comparable<App> {
     AppType appType;
     String name;
-	public boolean created;
+    public boolean created;
 
     public App(String s, AppType appType) {
         this.name = s;

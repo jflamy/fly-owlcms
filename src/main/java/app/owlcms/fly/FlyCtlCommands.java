@@ -73,7 +73,7 @@ public class FlyCtlCommands {
 		String path = System.getenv("PATH");
 		ProcessBuilder builder = new ProcessBuilder();
 		builder.environment().put("FLYCTL_INSTALL", homeDir + "/.fly");
-		builder.environment().put("PATH", homeDir + "/.fly/bin" + ";" + path);
+		builder.environment().put("PATH", "./fly/bin;" + homeDir + "/.fly/bin" + ";" + path);
 		return builder;
 	}
 
