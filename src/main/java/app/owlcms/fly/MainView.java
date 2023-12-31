@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -18,13 +17,11 @@ import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.ListItem;
 import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.html.OrderedList;
-import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.WebStorage;
 import com.vaadin.flow.component.page.WebStorage.Storage;
 import com.vaadin.flow.component.textfield.PasswordField;
-import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
 
@@ -73,7 +70,7 @@ public class MainView extends VerticalLayout {
 
 		Image howTo = new Image("img/token.png", "How to get a Token");
 		Div p2 = new Div(
-				"A fly.io access token is required to issue commands on your behalf.");
+				"A fly.io access token is required to issue commands on your behalf. The token is only kept in your browser, and you can clear it at any time.");
 		Emphasis summary = new Emphasis("Click here to get a fly.io token.");
 		summary.getStyle().set("color", "red");
 		Details details = new Details(summary, new HorizontalLayout(steps, howTo));
@@ -85,19 +82,20 @@ public class MainView extends VerticalLayout {
 
 		PasswordField accessTokenField = new PasswordField("Access Token");
 		accessTokenField.setValueChangeMode(ValueChangeMode.EAGER);
-		accessTokenField.setWidth("50ch");
+		accessTokenField.setWidth("55ch");
 		accessTokenField.addClassName("bordered");
 
 		VerticalLayout apps = new VerticalLayout();
 		apps.setMargin(false);
 		apps.setPadding(false);
 
-		UseToken tokenConsumer = new UseToken();
+		FlyCtlCommands tokenConsumer = new FlyCtlCommands();
 		Button clearToken = new Button("Clear Token");
 
 		Button listApplications = new Button("List Applications", e -> {
 			long timeMillis = System.currentTimeMillis();
 			if (timeMillis - lastClick < 100) {
+				lastClick = timeMillis;
 				return;
 			}
 			lastClick = timeMillis;
@@ -105,11 +103,9 @@ public class MainView extends VerticalLayout {
 				String newToken = accessTokenField.getValue();
 				if (newToken != null) {
 					tokenMissing.setVisible(false);
-					System.err.println("enabling clearToken 2");
 					clearToken.setEnabled(true);
 				} else {
 					tokenMissing.setVisible(true);
-					System.err.println("disabling clearToken 2");
 					clearToken.setEnabled(false);
 				}
 				if (newToken != null && (oldToken == null || !newToken.contentEquals(oldToken))) {
@@ -129,11 +125,9 @@ public class MainView extends VerticalLayout {
 			if (v.getValue() != null && !v.getValue().isBlank()) {
 				listApplications.setEnabled(true);
 				clearToken.setEnabled(true);
-				System.err.println("enabling 3");
 			} else {
 				listApplications.setEnabled(false);
 				clearToken.setEnabled(false);
-				System.err.println("disabling 3");
 			}
 		});
 
@@ -142,7 +136,6 @@ public class MainView extends VerticalLayout {
 			accessTokenField.setValue("");
 			listApplications.setEnabled(false);
 			tokenMissing.setVisible(true);
-			System.err.println("disabling clearToken 0");
 			clearToken.setEnabled(false);
 			apps.removeAll();
 		});
@@ -152,12 +145,10 @@ public class MainView extends VerticalLayout {
 					if (value != null && !value.isBlank()) {
 						accessTokenField.setValue(value);
 						listApplications.setEnabled(true);
-						System.err.println("enabling clearToken 1");
 						clearToken.setEnabled(true);
 						tokenMissing.setVisible(false);
 					} else {
 						listApplications.setEnabled(false);
-						System.err.println("disabling clearToken 2");
 						clearToken.setEnabled(false);
 						tokenMissing.setVisible(true);
 					}

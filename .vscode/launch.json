@@ -15,8 +15,8 @@
             "name": "Main",
             "request": "launch",
             "mainClass": "app.owlcms.fly.Main",
-            "vmArgs": "-Dvaadin.frontend.hotdeploy=false",
-            "projectName": "project-base"
+            "vmArgs": "-Dvaadin.frontend.hotdeploy=false -XX:+AllowEnhancedClassRedefinition -XX:HotswapAgent=fatjar",
+            "projectName": "fly-manager"
         }
     ]
 }
