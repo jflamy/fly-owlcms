@@ -122,8 +122,6 @@
 			<artifactId>annotations</artifactId>
 			<version>24.1.0</version>
 		</dependency>
-
-
 		<dependency>
 			<groupId>com.vaadin</groupId>
 			<artifactId>vaadin-testbench-junit5</artifactId>
@@ -140,6 +138,23 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.8.1</version>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.1.0</version>
+				<configuration>
+					<executable>java</executable>
+					<arguments>
+						<argument>-classpath</argument>
+						<classpath/>
+						<argument>-Dserver.port=8084</argument>
+						<argument>-Dvaadin.frontend.hotdeploy=false</argument>
+						<argument>-XX:+AllowEnhancedClassRedefinition</argument>
+						<argument>-XX:HotswapAgent=fatjar</argument>
+						<argument>app.owlcms.fly.Main</argument>
+					</arguments>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

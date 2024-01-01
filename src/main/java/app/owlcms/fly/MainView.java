@@ -93,6 +93,7 @@ public class MainView extends VerticalLayout {
 		Button clearToken = new Button("Clear Token");
 
 		Button listApplications = new Button("List Applications", e -> {
+			System.err.println("clicked");
 			long timeMillis = System.currentTimeMillis();
 			if (timeMillis - lastClick < 100) {
 				lastClick = timeMillis;
@@ -112,6 +113,7 @@ public class MainView extends VerticalLayout {
 					WebStorage.setItem(Storage.LOCAL_STORAGE, TOKEN_KEY, newToken);
 				}
 				apps.removeAll();
+				logger.warn("listing apps");
 				tokenConsumer.getApps(newToken).values().stream().sorted().forEach(app -> {
 					if (app.appType != AppType.DB) {
 						HorizontalLayout hl = showApplication(app);

@@ -30,73 +30,6 @@ public class FlyCtlCommands {
 
 	}
 
-	private List<String> getAppNames(ExecutorService executorService, ProcessBuilder builder) {
-		List<String> appNames = new ArrayList<>();
-		try {
-			builder.command("/bin/sh", "-c", "flyctl apps list --json | jq -r '.[].ID'");
-			logger.warn("env {}", builder.environment());
-			Process process = builder.start();
-			StreamGobbler streamGobbler1 = new StreamGobbler(process.getInputStream(), (string) -> {
-				if (!string.contains("builder")) {
-					logger.info("output {}", string);
-					appNames.add(string);
-				}
-			});
-			executorService.submit(streamGobbler1);
-			StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
-				if (!string.contains("builder")) {
-					logger.error("error {}", string);
-					appNames.add(string);
-				}
-			});
-			executorService.submit(streamGobbler2);
-			process.waitFor(5, TimeUnit.SECONDS);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return appNames;
-	}
-
-	private Map<AppType, App> buildAppMap(ExecutorService executorService, ProcessBuilder builder, List<String> appNames) {
-		Map<AppType, App> apps = new HashMap<>();
-		for (String s : appNames) {
-			try {
-				String command = "fly image show --app " + s + " --json | jq -r .[].Repository";
-				builder.command("/bin/sh", "-x", "-c", command);
-				Process process = builder.start();
-				StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
-					AppType appType = AppType.byImage(string);
-					App app = new App(s, appType);
-					apps.put(appType, app);
-					logger.warn("{}", app);
-				});
-				executorService.submit(streamGobbler);
-				process.waitFor(5, TimeUnit.SECONDS);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		return apps;
-	}
-
-	private ProcessBuilder createProcessBuilder(String token) {
-		String homeDir = System.getProperty("user.home");
-		String path = System.getenv("PATH");
-		ProcessBuilder builder = new ProcessBuilder();
-		
-		builder.environment().put("FLY_ACCESS_TOKEN", token);
-		if (Files.exists(Path.of("/app/fly/bin/flyctl"))) {
-			builder.environment().put("FLYCTL_INSTALL", "/app/fly");
-		} else {
-			builder.environment().put("FLYCTL_INSTALL", homeDir + "/.fly");
-		}
-		logger.warn("FLYCTL_INSTALL {}",builder.environment().get("FLYCTL_INSTALL"));
-		logger.warn("FLY_ACCESS_TOKEN {}",builder.environment().get("FLY_ACCESS_TOKEN"));
-
-		builder.environment().put("PATH", homeDir + "/.fly/bin" + File.pathSeparator +  "/app/fly/bin"  + File.pathSeparator + path);
-		return builder;
-	}
-
 	public void createPublicResults(String token, String appName, App app) {
 		ExecutorService executorService = Executors.newSingleThreadExecutor();
 		ProcessBuilder builder = createProcessBuilder(token);
@@ -122,7 +55,6 @@ public class FlyCtlCommands {
 		}
 	}
 
-
 	public void destroyApp(String token, App app) {
 		ExecutorService executorService = Executors.newSingleThreadExecutor();
 		ProcessBuilder builder = createProcessBuilder(token);
@@ -138,9 +70,74 @@ public class FlyCtlCommands {
 				logger.info("{}", string);
 			});
 			executorService.submit(streamGobbler);
-			process.waitFor(5, TimeUnit.SECONDS);
+			process.waitFor();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	private List<String> getAppNames(ExecutorService executorService, ProcessBuilder builder) {
+		List<String> appNames = new ArrayList<>();
+		try {
+			builder.command("/bin/sh", "-c", "flyctl apps list --json | jq -r '.[].ID'");
+			logger.warn("env {}", builder.environment());
+			Process process = builder.start();
+			StreamGobbler streamGobbler1 = new StreamGobbler(process.getInputStream(), (string) -> {
+				if (!string.contains("builder")) {
+					logger.info("output {}", string);
+					appNames.add(string);
+				}
+			});
+			StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
+				logger.error("error {}");
+			});
+			executorService.submit(streamGobbler1);
+			executorService.submit(streamGobbler2);
+			process.waitFor();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return appNames;
+	}
+
+	private Map<AppType, App> buildAppMap(ExecutorService executorService, ProcessBuilder builder, List<String> appNames) {
+		Map<AppType, App> apps = new HashMap<>();
+		for (String s : appNames) {
+			try {
+				String command = "fly image show --app " + s + " --json | jq -r .[].Repository";
+				builder.command("/bin/sh", "-x", "-c", command);
+				Process process = builder.start();
+				StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
+					AppType appType = AppType.byImage(string);
+					App app = new App(s, appType);
+					apps.put(appType, app);
+					logger.warn("{}", app);
+				});
+				executorService.submit(streamGobbler);
+				process.waitFor();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return apps;
+	}
+
+
+	private ProcessBuilder createProcessBuilder(String token) {
+		String homeDir = System.getProperty("user.home");
+		String path = System.getenv("PATH");
+		ProcessBuilder builder = new ProcessBuilder();
+		
+		builder.environment().put("FLY_ACCESS_TOKEN", token);
+		if (Files.exists(Path.of("/app/fly/bin/flyctl"))) {
+			builder.environment().put("FLYCTL_INSTALL", "/app/fly");
+		} else {
+			builder.environment().put("FLYCTL_INSTALL", homeDir + "/.fly");
+		}
+		logger.warn("FLYCTL_INSTALL {}",builder.environment().get("FLYCTL_INSTALL"));
+		logger.warn("FLY_ACCESS_TOKEN {}",builder.environment().get("FLY_ACCESS_TOKEN"));
+
+		builder.environment().put("PATH", homeDir + "/.fly/bin" + File.pathSeparator +  "/app/fly/bin"  + File.pathSeparator + path);
+		return builder;
 	}
 }
