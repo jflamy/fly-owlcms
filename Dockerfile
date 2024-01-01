@@ -13,6 +13,7 @@ RUN mvn dependency:go-offline
 # copy your other files
 COPY ./src ./src
 COPY ./frontend ./frontend
+COPY ./*.sh ./
 # compile the source code and package it in a jar file
 RUN mvn clean package -P production -Dmaven.test.skip=true
 
@@ -31,5 +32,6 @@ mv jq /app/fly/bin
 EOF
 
 COPY --from=stage1 /app/target/fly-manager.jar /app
+COPY --from=stage1 /app/*.sh /app/
 EXPOSE 8080
 ENTRYPOINT ["/opt/java/openjdk/bin/java", "-jar", "fly-manager.jar"]
