@@ -4,12 +4,13 @@ FROM eclipse-temurin:17-jdk-jammy
 WORKDIR /app
 ENV FLYCTL_INSTALL /app/fly
 
-# put required utilities in /app/fly/bins
+# put required utilities in /app/fly/bin
 RUN <<EOF
 wget -O jq https://github.com/jqlang/jq/releases/download/jq-1.6/jq-linux64
 chmod +x ./jq
 mkdir /app/fly
 curl -L https://fly.io/install.sh | sh
+chmod +x /app/fly/bin
 mv jq /app/fly/bin
 EOF
 
