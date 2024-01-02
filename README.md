@@ -1,57 +1,18 @@
-# Skeleton Starter for Vaadin
+# owlcms - fly.io application management
 
-This project can be used as a starting point to create your own Vaadin application.
-It has the necessary dependencies and files to help you get started.
+[fly.io](https://fly.io) is an affordable cloud deployment platform for [owlcms](https://github.com/jflamy/owlcms4) . 
 
-The best way to use it is via [vaadin.com/start](https://vaadin.com/start) - you can get only the necessary parts and choose the package naming you want to use.
-There is also a [getting started tutorial](https://vaadin.com/tutorials/getting-started-with-flow) based on this project.
+- owlcms can be run in the Hobby plan which provides 3 small applications for free. 
+- Even though owlcms requires a little bit more memory than allocated for free, the billed amount is smaller than the minimum amount for which a bill is emitted, so the usage remains free.
 
-To access it directly from github, clone the repository and import the project to the IDE of your choice as a Maven project. You need to have Java 8 or 11 installed.
+Unfortunately, fly.io is normally configured using a command-line interface, which makes deployment and management more difficult.  The command-line process is documented [here](https://owlcms.github.io/owlcms4/#/Fly)
 
-Run using `mvn jetty:run` and open [http://localhost:8080](http://localhost:8080) in the browser.
+This web application runs the command on behalf of users, so there is no need to install the command-line interface.  The only requirement for the user is to create an account on the fly.io site and get an access token.
 
-If you want to run your app locally in the production mode, run `mvn jetty:run -Pproduction`.
+It is then possible to
 
-### Running Integration Tests
-
-Integration tests are implemented using [Vaadin TestBench](https://vaadin.com/testbench). The tests take a few minutes to run and are therefore included in a separate Maven profile. We recommend running tests with a production build to minimize the chance of development time toolchains affecting test stability. To run the tests using Google Chrome, execute
-
-`mvn verify -Pit,production`
-
-and make sure you have a valid TestBench license installed (you can obtain a 
-trial license from the [trial page](
-https://vaadin.com/trial)).
-
-## Project structure
-
-The project follow Maven's [standard directory layout structure](https://maven.apache.org/guides/introduction/introduction-to-the-standard-directory-layout.html):
-- Under the `srs/main/java` are located Application sources
-    - `AppShell.java` configures the @PWA annotation making the application 
-      installable
-    - `GreetService.java` is a service class
-    - `MainView.java` is an example Vaadin view
-- Under the `srs/test` are located the TestBench test files
-- `src/main/resources` contains configuration files and static resources
-- The `frontend` directory in the root folder contains client-side 
-  dependencies and resource files. Example CSS styles used by the application 
-  are located under `frontend/themes`
-
-## Workspace.xml file
-IntelliJ IDEA uses `workspace.xml` file to cache user-specific project configuration.
-Tracking of local changes to the `workspace.xml` file can be prevented with the `git update-index --assume-unchanged .idea/workspace.xml` command.
-And to revert the setting: `git update-index --no-assume-unchanged .idea/workspace.xml`.
-
-## Useful links
-
-- Read the documentation at [vaadin.com/docs](https://vaadin.com/docs).
-- Follow the tutorials at [vaadin.com/tutorials](https://vaadin.com/tutorials).
-- Watch training videos and get certified at [vaadin.com/learn/training]( https://vaadin.com/learn/training).
-- Create new projects at [start.vaadin.com](https://start.vaadin.com/).
-- Search UI components and their usage examples at [vaadin.com/components](https://vaadin.com/components).
-- Find a collection of solutions to common use cases in [Vaadin Cookbook](https://cookbook.vaadin.com/).
-- Find Add-ons at [vaadin.com/directory](https://vaadin.com/directory).
-- Ask questions on [Stack Overflow](https://stackoverflow.com/questions/tagged/vaadin) or join our [Discord channel](https://discord.gg/MYFq5RTbBn).
-- Report issues, create pull requests in [GitHub](https://github.com/vaadin/).
-
-For a full Vaadin application example, there are more choices available also from [vaadin.com/start](https://vaadin.com/start) page.
+- create an owlcms application and update it to the latest version when desired
+- create a public results application and update it to the latest version when desired
+- connect the two via a shared secret
+- use the shared secret to connect an on-site (laptop) owlcms to the cloud publicresults
 
