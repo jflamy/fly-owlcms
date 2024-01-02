@@ -1,12 +1,18 @@
 package app.owlcms.fly;
 
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.vaadin.flow.component.AbstractField.ComponentValueChangeEvent;
+import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.ScrollOptions;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.AnchorTarget;
@@ -22,6 +28,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.WebStorage;
 import com.vaadin.flow.component.page.WebStorage.Storage;
 import com.vaadin.flow.component.textfield.PasswordField;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
 
@@ -34,14 +41,83 @@ import com.vaadin.flow.router.Route;
 public class MainView extends VerticalLayout {
 
 	private static final String TOKEN_KEY = Main.class.getPackage() + ".accessToken";
-	Logger logger = LoggerFactory.getLogger(MainView.class);
-	String oldToken;
-	long lastClick = 0;
+	private long lastClick = 0;
+	final private Logger logger = LoggerFactory.getLogger(MainView.class);
+	private String oldToken;
+	private ExecArea execArea;
+	private FlyCtlCommands tokenConsumer;
 
 	public MainView() {
 		this.setSpacing(false);
+		this.setHeightFull();
 		H2 title = new H2("owlcms - fly.io cloud");
 
+		execArea = new ExecArea();
+		execArea.setVisible(false);
+		execArea.setSizeFull();
+		tokenConsumer = new FlyCtlCommands(execArea);
+
+		VerticalLayout intro = buildIntro();
+		VerticalLayout tokenMissing = buildTokenMissingExplanation();
+		PasswordField accessTokenField = buildAccessTokenField();
+		VerticalLayout apps = buildAppsPlaceholder();
+
+		Button clearToken = new Button("Clear Token");
+		Button listApplications = new Button("List Applications",
+				e -> doListApplications(tokenMissing, accessTokenField, apps, clearToken));
+		listApplications.setEnabled(false);
+		listApplications.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+		listApplications.addClickShortcut(Key.ENTER);
+
+		accessTokenField.addValueChangeListener(
+				v -> doTokenSet(clearToken, listApplications, v));
+		clearToken.addClickListener(
+				e -> doTokenClear(tokenMissing, accessTokenField, apps, clearToken, listApplications));
+
+		WebStorage.getItem(Storage.LOCAL_STORAGE, TOKEN_KEY,
+				value -> doTokenFromStorage(tokenMissing, accessTokenField, clearToken, listApplications, value));
+
+		HorizontalLayout buttons = new HorizontalLayout(listApplications, clearToken);
+		add(title, intro, tokenMissing, accessTokenField, buttons, apps, execArea);
+	}
+
+	private PasswordField buildAccessTokenField() {
+		PasswordField accessTokenField = new PasswordField("Access Token");
+		accessTokenField.setValueChangeMode(ValueChangeMode.EAGER);
+		accessTokenField.setWidth("45em");
+		accessTokenField.addClassName("bordered");
+		return accessTokenField;
+	}
+
+	private VerticalLayout buildAppsPlaceholder() {
+		VerticalLayout apps = new VerticalLayout();
+		apps.setMargin(false);
+		apps.setPadding(false);
+		return apps;
+	}
+
+	private ConfirmDialog buildDeletionDialog(App app) {
+		ConfirmDialog deletionDialog = new ConfirmDialog();
+		deletionDialog.setHeader("Deletion Confirmation Required");
+		deletionDialog.setText(new Html(
+				"<div>This will remove the application and make the name available again.</div>"));
+
+		deletionDialog.setConfirmText("Delete");
+		deletionDialog.setConfirmButtonTheme("error primary");
+		deletionDialog.setCancelButtonTheme("primary");
+		deletionDialog.setCancelable(true);
+		deletionDialog.setCancelText("Cancel");
+		deletionDialog.addConfirmListener(e -> {
+			logger.info("deleting {}", app.name);
+			tokenConsumer.appDestroy(app);
+		});
+		deletionDialog.addCancelListener(e -> {
+			deletionDialog.close();
+		});
+		return deletionDialog;
+	}
+
+	private VerticalLayout buildIntro() {
 		Div p1 = new Div(
 				"This page creates and manages your owlcms applications");
 		VerticalLayout intro = new VerticalLayout(p1);
@@ -49,7 +125,10 @@ public class MainView extends VerticalLayout {
 		intro.setPadding(false);
 		intro.setMargin(false);
 		intro.getStyle().set("margin-top", "1em");
+		return intro;
+	}
 
+	private VerticalLayout buildTokenMissingExplanation() {
 		Anchor a = new Anchor("https://fly.io/user/personal_access_tokens",
 				"Click on this link to go to the fly.io account settings page.",
 				AnchorTarget.BLANK);
@@ -79,99 +158,148 @@ public class MainView extends VerticalLayout {
 		tokenMissing.setMargin(false);
 		tokenMissing.getStyle().set("margin-top", "1em");
 		tokenMissing.setPadding(false);
+		return tokenMissing;
+	}
 
-		PasswordField accessTokenField = new PasswordField("Access Token");
-		accessTokenField.setValueChangeMode(ValueChangeMode.EAGER);
-		accessTokenField.setWidth("55ch");
-		accessTokenField.addClassName("bordered");
-
-		VerticalLayout apps = new VerticalLayout();
-		apps.setMargin(false);
-		apps.setPadding(false);
-
-		FlyCtlCommands tokenConsumer = new FlyCtlCommands();
-		Button clearToken = new Button("Clear Token");
-
-		Button listApplications = new Button("List Applications", e -> {
-			System.err.println("clicked");
-			long timeMillis = System.currentTimeMillis();
-			if (timeMillis - lastClick < 100) {
-				lastClick = timeMillis;
-				return;
-			}
+	private void doListApplications(VerticalLayout tokenMissing, PasswordField accessTokenField, VerticalLayout apps,
+			Button clearToken) {
+		long timeMillis = System.currentTimeMillis();
+		if (timeMillis - lastClick < 100) {
 			lastClick = timeMillis;
-			UI.getCurrent().access(() -> {
+			return;
+		}
+		lastClick = timeMillis;
+		UI ui = UI.getCurrent();
+		execArea.setVisible(true);
+		execArea.append("Listing Applications. Please wait.", ui);
+		ui.push();
+
+		new Thread(() -> {
+			ui.access(() -> {
 				String newToken = accessTokenField.getValue();
 				if (newToken != null) {
 					tokenMissing.setVisible(false);
 					clearToken.setEnabled(true);
+					tokenConsumer.setToken(newToken);
 				} else {
 					tokenMissing.setVisible(true);
 					clearToken.setEnabled(false);
+					tokenConsumer.setToken(null);
 				}
+
 				if (newToken != null && (oldToken == null || !newToken.contentEquals(oldToken))) {
 					WebStorage.setItem(Storage.LOCAL_STORAGE, TOKEN_KEY, newToken);
 				}
 				apps.removeAll();
-				logger.warn("listing apps");
-				tokenConsumer.getApps(newToken).values().stream().sorted().forEach(app -> {
-					if (app.appType != AppType.DB) {
-						HorizontalLayout hl = showApplication(app);
-						apps.add(hl);
-					}
-				});
+
+				showApps(tokenConsumer.getApps(), apps);
+				execArea.clear(ui);
+				execArea.setVisible(false);
 			});
-		});
+		}).start();
+	}
+
+	private void doTokenClear(VerticalLayout tokenMissing, PasswordField accessTokenField, VerticalLayout apps,
+			Button clearToken, Button listApplications) {
+		WebStorage.removeItem(Storage.LOCAL_STORAGE, TOKEN_KEY);
+		accessTokenField.setValue("");
 		listApplications.setEnabled(false);
-		accessTokenField.addValueChangeListener(v -> {
-			if (v.getValue() != null && !v.getValue().isBlank()) {
-				listApplications.setEnabled(true);
-				clearToken.setEnabled(true);
-			} else {
-				listApplications.setEnabled(false);
-				clearToken.setEnabled(false);
-			}
-		});
+		tokenMissing.setVisible(true);
+		clearToken.setEnabled(false);
+		apps.removeAll();
+	}
 
-		clearToken.addClickListener(e -> {
-			WebStorage.removeItem(Storage.LOCAL_STORAGE, TOKEN_KEY);
-			accessTokenField.setValue("");
+	private void doTokenFromStorage(VerticalLayout tokenMissing, PasswordField accessTokenField, Button clearToken,
+			Button listApplications, String value) {
+		if (value != null && !value.isBlank()) {
+			accessTokenField.setValue(value);
+			listApplications.setEnabled(true);
+			clearToken.setEnabled(true);
+			tokenMissing.setVisible(false);
+		} else {
 			listApplications.setEnabled(false);
-			tokenMissing.setVisible(true);
 			clearToken.setEnabled(false);
-			apps.removeAll();
-		});
+			tokenMissing.setVisible(true);
+		}
+		oldToken = value;
+	}
 
-		WebStorage.getItem(Storage.LOCAL_STORAGE, TOKEN_KEY,
-				(value -> {
-					if (value != null && !value.isBlank()) {
-						accessTokenField.setValue(value);
-						listApplications.setEnabled(true);
-						clearToken.setEnabled(true);
-						tokenMissing.setVisible(false);
-					} else {
-						listApplications.setEnabled(false);
-						clearToken.setEnabled(false);
-						tokenMissing.setVisible(true);
-					}
-					oldToken = value;
-				}));
-
-		listApplications.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-		listApplications.addClickShortcut(Key.ENTER);
-
-		HorizontalLayout buttons = new HorizontalLayout(listApplications, clearToken);
-
-		add(title, intro, tokenMissing, accessTokenField, buttons, apps);
+	private void doTokenSet(Button clearToken, Button listApplications,
+			ComponentValueChangeEvent<PasswordField, String> v) {
+		if (v.getValue() != null && !v.getValue().isBlank()) {
+			listApplications.setEnabled(true);
+			clearToken.setEnabled(true);
+		} else {
+			listApplications.setEnabled(false);
+			clearToken.setEnabled(false);
+		}
 	}
 
 	private HorizontalLayout showApplication(App app) {
 		HorizontalLayout hl = new HorizontalLayout();
 		hl.setAlignItems(Alignment.CENTER);
-		NativeLabel label = new NativeLabel(app.name);
+		NativeLabel label = new NativeLabel(app.appType.toString());
+		label.setWidth("15em");
 		hl.add(label);
-		hl.add(new Button("Update"));
-		hl.add(new Button("Restart"));
+
+		if (app.created) {
+			NativeLabel nl = new NativeLabel(app.name);
+			nl.setWidth("15em");
+			hl.add(nl);
+			Button updateButton = new Button("Update",
+					e -> tokenConsumer.appDeploy(app));
+			hl.add(updateButton);
+
+			Button restartButton = new Button("Restart",
+					e -> tokenConsumer.appRestart(app));
+			hl.add(restartButton);
+
+			ConfirmDialog deletionDialog = buildDeletionDialog(app);
+			Button deleteButton = new Button("Delete");
+			deleteButton.addClickListener(event -> {
+				deletionDialog.open();
+			});
+			hl.add(deleteButton);
+
+		} else {
+			TextField tf = new TextField();
+			tf.setValue(app.name);
+			tf.setPlaceholder("enter application name");
+			tf.setWidth("15em");
+			hl.add(tf);
+			tf.setRequired(true);
+			tf.setRequiredIndicatorVisible(true);
+			Button creationButton = new Button("Create",
+					e -> {
+						app.name = tf.getValue();
+						tokenConsumer.appCreate(app);
+					});
+			hl.add(creationButton);
+		}
+
 		return hl;
+	}
+
+	private void showApps(Map<AppType, App> appMap, VerticalLayout apps) {
+		App owlcmsApp = appMap.get(AppType.OWLCMS);
+		App publicApp = appMap.get(AppType.PUBLICRESULTS);
+
+		apps.getStyle().set("margin-top", "1em");
+		if (owlcmsApp != null) {
+			HorizontalLayout showOwlcmsApp = showApplication(owlcmsApp);
+			apps.add(showOwlcmsApp);
+		} else {
+			owlcmsApp = new App("", AppType.OWLCMS);
+			HorizontalLayout showOwlcmsApp = showApplication(owlcmsApp);
+			apps.add(showOwlcmsApp);
+		}
+		if (publicApp != null) {
+			HorizontalLayout showPublicApp = showApplication(publicApp);
+			apps.add(showPublicApp);
+		} else {
+			publicApp = new App("", AppType.PUBLICRESULTS);
+			HorizontalLayout showPublicApp = showApplication(publicApp);
+			apps.add(showPublicApp);
+		}
 	}
 }

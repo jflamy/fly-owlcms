@@ -9,7 +9,7 @@ WORKDIR /app
 # copy just pom.xml
 COPY pom.xml .
 # go-offline using the pom.xml
-RUN mvn dependency:go-offline
+RUN mvn dependency:go-offline package
 # copy your other files
 COPY ./src ./src
 COPY ./frontend ./frontend

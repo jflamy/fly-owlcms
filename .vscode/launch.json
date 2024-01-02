@@ -6,7 +6,7 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Current File",
+            "name": "No Options",
             "request": "launch",
             "mainClass": "${file}"
         },
@@ -15,7 +15,7 @@
             "name": "fly-owlcms",
             "request": "launch",
             "mainClass": "app.owlcms.fly.Main",
-            "vmArgs": "-Dserver.port=8084 -Dvaadin.frontend.hotdeploy=false -XX:+AllowEnhancedClassRedefinition -XX:HotswapAgent=fatjar",
+            "vmArgs": "-Dserver.port=8084 -Dvaadin.frontend.hotdeploy=false -Dvaadin.devmode.hostsAllowed=* -XX:+AllowEnhancedClassRedefinition -XX:HotswapAgent=fatjar",
             "projectName": "fly-manager"
         }
     ]

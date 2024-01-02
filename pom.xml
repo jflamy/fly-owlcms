@@ -109,11 +109,10 @@
 			<version>12.0.4</version>
 		</dependency>
 
-		<!-- Added to provide logging output as Vaadin uses -->
-		<!-- the unbound SLF4J no-operation (NOP) logger implementation -->
 		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-simple</artifactId>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.4.14</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.jetbrains/annotations -->
