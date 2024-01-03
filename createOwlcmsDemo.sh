@@ -3,7 +3,7 @@ export FLY_APP_root=owlcms
 export VERSION=stable
 export REGION=yyz
 
-export FLY_ACCESS_TOKEN=fo1_cTlqK6Rp20TZa3kH-WqGr7XTkyLJdeAi-ZAl96lec8g
+export FLY_ACCESS_TOKEN=
 export FLY_API_TOKEN=$(flyctl tokens create deploy)
 
 # create owlcms and set secrets.  don't deploy because no database yet.
