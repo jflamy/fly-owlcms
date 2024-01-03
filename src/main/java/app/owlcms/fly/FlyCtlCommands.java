@@ -34,14 +34,13 @@ public class FlyCtlCommands {
 		return token;
 	}
 
-	public Map<AppType, App> getApps() {
+	public Map<AppType, App> getApps() throws NoPermissionException {
 		logger.warn("getApps");
 		ExecutorService executorService = Executors.newCachedThreadPool();
 		ProcessBuilder builder = createProcessBuilder(getToken());
-		List<String> appNames = getAppNames(executorService, builder);
+		List<String> appNames = getAppNames(executorService, builder, execArea, UI.getCurrent());
 		Map<AppType, App> apps = buildAppMap(executorService, builder, appNames);
 		return apps;
-
 	}
 
 	public void createPublicResults(String appName, App app) {
@@ -69,7 +68,7 @@ public class FlyCtlCommands {
 		}
 	}
 
-	private void doAppCommand(App app, String commandString) {
+	private void doAppCommand(App app, String commandString, String... envPairs) {
 		UI ui = UI.getCurrent();
 		execArea.setVisible(true);
 		new Thread(() -> {
@@ -79,6 +78,13 @@ public class FlyCtlCommands {
 			builder.environment().put("VERSION", "stable");
 			builder.environment().put("REGION", region);
 			builder.environment().put("FLY_APP", app.name);
+
+			if (envPairs.length > 0) {
+				for (int i = 0; i < envPairs.length; i = i + 2) {
+					builder.environment().put(envPairs[i], envPairs[i + 1]);
+					logger.warn("adding {}={}", envPairs[i], envPairs[i + 1]);
+				}
+			}
 
 			try {
 				logger.info("executing FLY_APP={} {}", app.name, commandString);
@@ -98,7 +104,7 @@ public class FlyCtlCommands {
 				executorService.submit(streamGobbler2);
 				process.waitFor();
 				Thread.sleep(5000);
-				ui.access(() ->	execArea.setVisible(false));
+				ui.access(() -> execArea.setVisible(false));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -109,8 +115,33 @@ public class FlyCtlCommands {
 		this.token = newToken;
 	}
 
-	private List<String> getAppNames(ExecutorService executorService, ProcessBuilder builder) {
+	String reason = "";
+
+	public String getReason() {
+		return reason;
+	}
+
+	public void setReason(String reason) {
+		this.reason = reason;
+	}
+
+	public int getStatus() {
+		return status;
+	}
+
+	public void setStatus(int status) {
+		logger.warn("setting status {} {}", status, LoggerUtils.whereFrom());
+		this.status = status;
+	}
+
+	int status;
+
+	private List<String> getAppNames(ExecutorService executorService, ProcessBuilder builder, ExecArea area, UI ui)
+			throws NoPermissionException {
 		List<String> appNames = new ArrayList<>();
+		setReason("");
+		setStatus(0);
+
 		try {
 			builder.command("/bin/sh", "-c", "flyctl apps list --json | jq -r '.[].ID'");
 			// logger.debug("env {}", builder.environment());
@@ -121,13 +152,23 @@ public class FlyCtlCommands {
 				}
 			});
 			StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
-				logger.error("error {}");
+				setStatus(-1);
+				setReason(string);
+				logger.error("error* {}", string);
+				area.append(string, ui);
+				reason = string;
 			});
 			executorService.submit(streamGobbler1);
 			executorService.submit(streamGobbler2);
 			process.waitFor();
+			logger.warn("status {}", status);
 		} catch (Exception e) {
 			e.printStackTrace();
+			reason = e.getMessage();
+			status = -2;
+		}
+		if (status != 0) {
+			throw new NoPermissionException(reason);
 		}
 		return appNames;
 	}
@@ -177,9 +218,9 @@ public class FlyCtlCommands {
 		return builder;
 	}
 
-    public void appDeploy(App app) {
-        doAppCommand(app, "fly deploy --app " + app.name + " --image " + app.appType.image + ":stable" + " --ha=false");
-    }
+	public void appDeploy(App app) {
+		doAppCommand(app, "fly deploy --app " + app.name + " --image " + app.appType.image + ":stable" + " --ha=false");
+	}
 
 	public void appRestart(App app) {
 		doAppCommand(app, "fly apps restart --skip-health-checks " + app.name);
@@ -191,5 +232,35 @@ public class FlyCtlCommands {
 
 	public void appCreate(App app) {
 		doAppCommand(app, app.appType.script);
+	}
+
+	public void appSharedSecret(App app) {
+		doAppCommand(app, app.appType.script);
+	}
+
+	int hostNameStatus;
+	public boolean checkHostname(String value) {
+		try {
+			ProcessBuilder builder = createProcessBuilder(getToken());
+			ExecutorService executorService = Executors.newCachedThreadPool();
+			builder.command("sh","-c","fly apps create --name "+value+" --org personal");
+			Process process = builder.start();
+			hostNameStatus = 0;
+			StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
+				logger.info("appCommand {}", string);
+			});
+			StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
+				logger.error("error {}", string);
+				hostNameStatus = -1;
+			});
+			executorService.submit(streamGobbler);
+			executorService.submit(streamGobbler2);
+			process.waitFor();
+			return hostNameStatus == 0;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return false;
+
 	}
 }

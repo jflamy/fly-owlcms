@@ -1,5 +1,7 @@
 package app.owlcms.fly;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -9,6 +11,7 @@ import com.vaadin.flow.component.AbstractField.ComponentValueChangeEvent;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.ScrollOptions;
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -23,6 +26,9 @@ import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.ListItem;
 import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.html.OrderedList;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.WebStorage;
@@ -46,6 +52,12 @@ public class MainView extends VerticalLayout {
 	private String oldToken;
 	private ExecArea execArea;
 	private FlyCtlCommands tokenConsumer;
+	private VerticalLayout intro;
+	private VerticalLayout tokenMissing;
+	private PasswordField accessTokenField;
+	private VerticalLayout apps;
+	Button clearToken;
+	Button listApplications;
 
 	public MainView() {
 		this.setSpacing(false);
@@ -57,13 +69,13 @@ public class MainView extends VerticalLayout {
 		execArea.setSizeFull();
 		tokenConsumer = new FlyCtlCommands(execArea);
 
-		VerticalLayout intro = buildIntro();
-		VerticalLayout tokenMissing = buildTokenMissingExplanation();
-		PasswordField accessTokenField = buildAccessTokenField();
-		VerticalLayout apps = buildAppsPlaceholder();
+		intro = buildIntro();
+		tokenMissing = buildTokenMissingExplanation();
+		accessTokenField = buildAccessTokenField();
+		apps = buildAppsPlaceholder();
 
-		Button clearToken = new Button("Clear Token");
-		Button listApplications = new Button("List Applications",
+		clearToken = new Button("Clear Token");
+		listApplications = new Button("List Applications",
 				e -> doListApplications(tokenMissing, accessTokenField, apps, clearToken));
 		listApplications.setEnabled(false);
 		listApplications.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -96,7 +108,7 @@ public class MainView extends VerticalLayout {
 		return apps;
 	}
 
-	private ConfirmDialog buildDeletionDialog(App app) {
+	private ConfirmDialog buildDeletionDialog(App app, Runnable callback) {
 		ConfirmDialog deletionDialog = new ConfirmDialog();
 		deletionDialog.setHeader("Deletion Confirmation Required");
 		deletionDialog.setText(new Html(
@@ -108,8 +120,15 @@ public class MainView extends VerticalLayout {
 		deletionDialog.setCancelable(true);
 		deletionDialog.setCancelText("Cancel");
 		deletionDialog.addConfirmListener(e -> {
-			logger.info("deleting {}", app.name);
+			execArea.append("Deleting " + app.name, UI.getCurrent());
+			logger.info("Deleting {}", app.name);
 			tokenConsumer.appDestroy(app);
+			if (app.appType == AppType.OWLCMS) {
+				App dbApp = tokenConsumer.getApps().get(AppType.DB);
+				execArea.append("Deleting associated database " + dbApp.name, UI.getCurrent());
+				logger.info("Deleting associated database{}", dbApp.name);
+			}
+			callback.run();
 		});
 		deletionDialog.addCancelListener(e -> {
 			deletionDialog.close();
@@ -169,29 +188,31 @@ public class MainView extends VerticalLayout {
 			return;
 		}
 		lastClick = timeMillis;
+		String newToken = accessTokenField.getValue();
+		if (newToken != null) {
+			tokenMissing.setVisible(false);
+			clearToken.setEnabled(true);
+			tokenConsumer.setToken(newToken);
+		} else {
+			tokenMissing.setVisible(true);
+			clearToken.setEnabled(false);
+			tokenConsumer.setToken(null);
+		}
+
+		if (newToken != null && (oldToken == null || !newToken.contentEquals(oldToken))) {
+			WebStorage.setItem(Storage.LOCAL_STORAGE, TOKEN_KEY, newToken);
+		}
+		apps.removeAll();
+
 		UI ui = UI.getCurrent();
+		execArea.clear(ui);
 		execArea.setVisible(true);
+
 		execArea.append("Listing Applications. Please wait.", ui);
 		ui.push();
 
 		new Thread(() -> {
 			ui.access(() -> {
-				String newToken = accessTokenField.getValue();
-				if (newToken != null) {
-					tokenMissing.setVisible(false);
-					clearToken.setEnabled(true);
-					tokenConsumer.setToken(newToken);
-				} else {
-					tokenMissing.setVisible(true);
-					clearToken.setEnabled(false);
-					tokenConsumer.setToken(null);
-				}
-
-				if (newToken != null && (oldToken == null || !newToken.contentEquals(oldToken))) {
-					WebStorage.setItem(Storage.LOCAL_STORAGE, TOKEN_KEY, newToken);
-				}
-				apps.removeAll();
-
 				showApps(tokenConsumer.getApps(), apps);
 				execArea.clear(ui);
 				execArea.setVisible(false);
@@ -243,9 +264,10 @@ public class MainView extends VerticalLayout {
 		hl.add(label);
 
 		if (app.created) {
-			NativeLabel nl = new NativeLabel(app.name);
-			nl.setWidth("15em");
-			hl.add(nl);
+			Anchor a = new Anchor("https://" + app.name + ".fly.dev", app.name, AnchorTarget.BLANK);
+			a.getStyle().set("text-decoration", "underline");
+			a.setWidth("15em");
+			hl.add(a);
 			Button updateButton = new Button("Update",
 					e -> tokenConsumer.appDeploy(app));
 			hl.add(updateButton);
@@ -254,7 +276,8 @@ public class MainView extends VerticalLayout {
 					e -> tokenConsumer.appRestart(app));
 			hl.add(restartButton);
 
-			ConfirmDialog deletionDialog = buildDeletionDialog(app);
+			ConfirmDialog deletionDialog = buildDeletionDialog(app,
+					() -> doListApplications(tokenMissing, accessTokenField, apps, clearToken));
 			Button deleteButton = new Button("Delete");
 			deleteButton.addClickListener(event -> {
 				deletionDialog.open();
@@ -262,22 +285,49 @@ public class MainView extends VerticalLayout {
 			hl.add(deleteButton);
 
 		} else {
-			TextField tf = new TextField();
+			TextField tf = new TextField("");
 			tf.setValue(app.name);
 			tf.setPlaceholder("enter application name");
 			tf.setWidth("15em");
 			hl.add(tf);
 			tf.setRequired(true);
 			tf.setRequiredIndicatorVisible(true);
+
 			Button creationButton = new Button("Create",
 					e -> {
-						app.name = tf.getValue();
-						tokenConsumer.appCreate(app);
+						if (tf.getValue() == null || tf.getValue().isBlank()) {
+							tf.setErrorMessage("You must provide a value");
+							tf.setInvalid(true);
+							// Button closeButton = new Button("Close");
+							// Notification not = new Notification(
+							// new Text("You must provide a value"),
+							// closeButton);
+							// closeButton.addClickListener((e2) -> not.close());
+							// not.addThemeVariants(NotificationVariant.LUMO_ERROR);
+							// not.setPosition(Position.MIDDLE);
+							// not.open();
+							// UI.getCurrent().push();
+						} else {
+							String siteName = tf.getValue() + ".fly.net";
+							boolean ok = tokenConsumer.checkHostname(tf.getValue());
+							if (!ok) {
+								tf.setErrorMessage(siteName + " is already taken.");
+								tf.setInvalid(true);
+							} else {
+								// this is what we want
+								tf.setInvalid(false);
+								app.name = tf.getValue();
+								logger.info("creating {}", siteName);
+								tokenConsumer.appCreate(app);
+								doListApplications(tokenMissing, accessTokenField, apps, clearToken);
+							}
+						}
 					});
 			hl.add(creationButton);
 		}
 
 		return hl;
+
 	}
 
 	private void showApps(Map<AppType, App> appMap, VerticalLayout apps) {

@@ -33,7 +33,7 @@ public class ExecArea extends Pre {
             String newValue = curValue + System.lineSeparator() + line;
             setText(newValue);
             logger.warn("new value {}", newValue);
-            this.getElement().executeJs("var objDiv = document.getElementById('execArea');objDiv.scrollTop = objDiv.scrollHeight;");
+            this.getElement().executeJs("var objDiv = document.getElementById('execArea');objDiv.scrollTop = objDiv.scrollHeight;objDiv.scrollIntoView(false)");
             ui.push();
         });
     }
