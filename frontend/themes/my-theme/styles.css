@@ -16,4 +16,9 @@ vaadin-text-field.bordered::part(input-field) {
   background-color: var(--lumo-base-color);
 }
 
+vaadin-login-overlay-wrapper::part(card) {
+  max-width: none;
+  width: 600px;
+}
+
 

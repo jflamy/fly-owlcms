@@ -22,15 +22,21 @@ import com.vaadin.flow.component.html.AnchorTarget;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Emphasis;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.IFrame;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.ListItem;
 import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.html.OrderedList;
+import com.vaadin.flow.component.login.LoginI18n;
+import com.vaadin.flow.component.login.LoginOverlay;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.notification.Notification.Position;
+import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
+import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexWrap;
 import com.vaadin.flow.component.page.WebStorage;
 import com.vaadin.flow.component.page.WebStorage.Storage;
 import com.vaadin.flow.component.textfield.PasswordField;
@@ -56,18 +62,30 @@ public class MainView extends VerticalLayout {
 	private VerticalLayout tokenMissing;
 	private PasswordField accessTokenField;
 	private VerticalLayout apps;
-	Button clearToken;
-	Button listApplications;
+	private Button clearToken;
+	private Button listApplications;
+	private LoginOverlay loginOverlay;
+	private MainView view;
 
 	public MainView() {
-		this.setSpacing(false);
-		this.setHeightFull();
-		H2 title = new H2("owlcms - fly.io cloud");
-
 		execArea = new ExecArea();
 		execArea.setVisible(false);
 		execArea.setSizeFull();
 		tokenConsumer = new FlyCtlCommands(execArea);
+
+		if (tokenConsumer.getToken() == null) {
+			this.removeAll();
+			showLandingPage();
+		} else {
+			this.removeAll();
+			showApplicationView();
+		}
+	}
+
+	private void showApplicationView() {
+		this.setSpacing(false);
+		this.setHeightFull();
+		H2 title = new H2("owlcms - fly.io cloud");
 
 		intro = buildIntro();
 		tokenMissing = buildTokenMissingExplanation();
@@ -91,6 +109,129 @@ public class MainView extends VerticalLayout {
 
 		HorizontalLayout buttons = new HorizontalLayout(listApplications, clearToken);
 		add(title, intro, tokenMissing, accessTokenField, buttons, apps, execArea);
+	}
+
+	private void showLandingPage() {
+		view = this;
+		view.setSizeFull();
+
+		Html publicResultsInfo = new Html("""
+				<div>
+					<h3>Publish live results to the Internet</h3>
+					By signing up and logging in, you can get a free cloud server that can be accessed by anyone
+					in the world that has internet access (on a phone, tablet or laptop). The scoreboard is live and
+					can even be used by the coaches in the warmup room or by the audience.
+				</div>
+				""");
+
+		Html owlcmsInfo = new Html(
+				"""
+						<div>
+							<h3>Run competitions in the cloud</h3>
+							If you have good Internet at your club, you can run competitions without having to
+							install anything. You can run a competition on a free cloud server.
+							<ol style="margin-top: 0.5em">
+								<li>Sign Up to fly.io(only needed once).  Fly.io has a promotional tier for small sites.  The charges
+								for an owlcms site are far less than their minimum monthly billing, so running owlcms does not cost anything.</li>
+								<li>Login and Manage your applications</li>
+							</ol>
+						</div>
+						""");
+
+		Html hybridInfo = new Html(
+				"""
+						<div>
+							<h3>Run on-site and publish results to the cloud</h3>
+							Many prefer to run their competition locally on a Windows, Mac or Linux laptop.  You
+							can still setup a free results server in the cloud using this site, and connect your
+							competition site to the cloud server.
+						</div>
+						""");
+
+		Div mapContainer = new Div();
+		mapContainer.setWidth("1030px");
+		mapContainer.setHeight("695px");
+		mapContainer.getStyle().set("overflow", "hidden");
+		IFrame map = new IFrame(
+				"https://www.google.com/maps/d/embed?mid=1cFqfyfoF_RSoM56GewSPDWbuoHihsw4&ehbc=2E312F");
+		map.setWidth("1030px");
+		map.setHeight("733px");
+		map.getStyle().set("position", "relative");
+		map.getStyle().set("top", "-65px");
+		map.getStyle().set("left", "-5px");
+		mapContainer.add(map);
+
+		getLoginOverlay();
+
+		Button login = new Button("Login", e -> {
+			view.add(loginOverlay);
+			loginOverlay.setOpened(true);
+		});
+		Button signup = new Button("Sign Up to fly.io", e -> {
+			UI.getCurrent().getPage().open("https://fly.io/app/sign-up");
+		});
+		HorizontalLayout topRow = new HorizontalLayout(new H2("owlcms Cloud Application Dashboard "), login, signup);
+
+		VerticalLayout blocks = new VerticalLayout(owlcmsInfo, publicResultsInfo, hybridInfo);
+		FlexLayout page = new FlexLayout(blocks, mapContainer);
+		page.setFlexDirection(FlexDirection.ROW);
+		// page.setFlexShrink(1.0, blocks);
+		page.setFlexGrow(0.5, blocks);
+		page.setFlexWrap(FlexWrap.WRAP);
+		page.setSizeFull();
+		page.setFlexBasis("40%", blocks);
+
+		view.add(topRow, page);
+	}
+
+	private void getLoginOverlay() {
+
+		LoginI18n i18n = LoginI18n.createDefault();
+		LoginI18n.Header i18nHeader = i18n.getHeader();
+		logger.warn("****{}", i18nHeader);
+
+		LoginI18n.Form i18nForm = i18n.getForm();
+		i18nForm.setTitle("Log in to fly.io");
+		i18nForm.setUsername("Käyttäjänimi");
+		i18nForm.setPassword("Salasana");
+		i18nForm.setSubmit("Kirjaudu sisään");
+		i18nForm.setForgotPassword("Unohtuiko salasana?");
+		i18n.setForm(i18nForm);
+
+		LoginI18n.ErrorMessage i18nErrorMessage = i18n.getErrorMessage();
+		i18nErrorMessage.setTitle("Väärä käyttäjätunnus tai salasana");
+		i18nErrorMessage.setMessage(
+		"Tarkista että käyttäjätunnus ja salasana ovat oikein ja yritä uudestaan.");
+		i18n.setErrorMessage(i18nErrorMessage);
+
+		// i18n.setAdditionalInformation("Jos tarvitset lisätietoja käyttäjälle.");
+
+		loginOverlay = new LoginOverlay();
+		loginOverlay.setI18n(i18n);
+
+		Button loginCancelbutton = new Button("Cancel", e -> loginOverlay.close());
+		loginCancelbutton.setWidthFull();
+		loginOverlay.setForgotPasswordButtonVisible(false);
+		loginOverlay.setTitle("owlcms Cloud Application Management");
+		loginOverlay.setDescription(
+				"""
+						This application issues fly.io commands on your behalf. Your login information is used to get a permission token.
+						The application does NOT keep your login information.
+						""");
+
+		loginOverlay.getFooter().add(loginCancelbutton);
+		loginOverlay.addLoginListener(e -> {
+			logger.info("user login {} ", e.getUsername());
+			boolean successful = tokenConsumer.doLogin(e.getUsername(), e.getPassword());
+			if (successful) {
+				loginOverlay.setError(false);
+				loginOverlay.setOpened(false);
+				view.removeAll();
+				showApplicationView();
+			} else {
+				loginOverlay.setError(true);
+			}
+		});
 	}
 
 	private PasswordField buildAccessTokenField() {

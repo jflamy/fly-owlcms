@@ -202,7 +202,9 @@ public class FlyCtlCommands {
 		String path = System.getenv("PATH");
 		ProcessBuilder builder = new ProcessBuilder();
 
-		builder.environment().put("FLY_ACCESS_TOKEN", token);
+		if (token != null) {
+			builder.environment().put("FLY_ACCESS_TOKEN", token);
+		}
 		if (Files.exists(Path.of("/app/fly/bin/flyctl"))) {
 			builder.environment().put("FLYCTL_INSTALL", "/app/fly");
 		} else {
@@ -261,6 +263,30 @@ public class FlyCtlCommands {
 			e.printStackTrace();
 		}
 		return false;
-
 	}
+
+    public boolean doLogin(String username, String password) {
+		return false;
+		// try {
+		// 	ProcessBuilder builder = createProcessBuilder(getToken());
+		// 	ExecutorService executorService = Executors.newCachedThreadPool();
+		// 	builder.command("sh","-c","fly apps create --name "+username+" --org personal");
+		// 	Process process = builder.start();
+		// 	hostNameStatus = 0;
+		// 	StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
+		// 		logger.info("appCommand {}", string);
+		// 	});
+		// 	StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
+		// 		logger.error("error {}", string);
+		// 		hostNameStatus = -1;
+		// 	});
+		// 	executorService.submit(streamGobbler);
+		// 	executorService.submit(streamGobbler2);
+		// 	process.waitFor();
+		// 	return hostNameStatus == 0;
+		// } catch (Exception e) {
+		// 	e.printStackTrace();
+		// }
+		// return false;
+    }
 }
