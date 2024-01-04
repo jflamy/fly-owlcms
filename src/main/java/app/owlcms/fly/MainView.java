@@ -118,9 +118,17 @@ public class MainView extends VerticalLayout {
 		Html publicResultsInfo = new Html("""
 				<div>
 					<h3>Publish live results to the Internet</h3>
-					By signing up and logging in, you can get a free cloud server that can be accessed by anyone
-					in the world that has internet access (on a phone, tablet or laptop). The scoreboard is live and
-					can even be used by the coaches in the warmup room or by the audience.
+					<h4 style="margin-top: 0.2em; margin-bottom: 0.2em">Either from an on-site installation or a cloud installation</h4>
+					<div>
+						Using this site you can configure a free cloud server that can be accessed by anyone
+						in the world that has internet access (on a phone, tablet or laptop). The scoreboard is live and
+						can even be used by the coaches in the warmup room or by the audience.
+					</div>
+					<div>
+						If you prefer to run your competition locally on a Windows, Mac or Linux laptop, youy can also
+						setup the free cloud results server using this site, and connect your
+						competition site to the cloud server.
+					</div>
 				</div>
 				""");
 
@@ -138,29 +146,19 @@ public class MainView extends VerticalLayout {
 						</div>
 						""");
 
-		Html hybridInfo = new Html(
-				"""
-						<div>
-							<h3>Run on-site and publish results to the cloud</h3>
-							Many prefer to run their competition locally on a Windows, Mac or Linux laptop.  You
-							can still setup a free results server in the cloud using this site, and connect your
-							competition site to the cloud server.
-						</div>
-						""");
-
 		Div mapContainer = new Div();
 		mapContainer.setWidth("1030px");
 		mapContainer.setHeight("695px");
 		mapContainer.getStyle().set("overflow", "hidden");
 		IFrame map = new IFrame(
-				"https://www.google.com/maps/d/embed?mid=1cFqfyfoF_RSoM56GewSPDWbuoHihsw4&ehbc=2E312F");
-		map.setWidth("1030px");
+				"https://www.google.com/maps/d/embed?mid=1cFqfyfoF_RSoM56GewSPDWbuoHihsw4&ehbc=2E312F&z=2");
+		map.setWidth("1000px");
 		map.setHeight("733px");
 		map.getStyle().set("position", "relative");
 		map.getStyle().set("top", "-65px");
 		map.getStyle().set("left", "-5px");
 		mapContainer.add(map);
-
+		Div mapDescription = new Div("Users of the latest owlcms version, since Jan 01 2023");
 		getLoginOverlay();
 
 		Button login = new Button("Login", e -> {
@@ -171,12 +169,15 @@ public class MainView extends VerticalLayout {
 			UI.getCurrent().getPage().open("https://fly.io/app/sign-up");
 		});
 		HorizontalLayout topRow = new HorizontalLayout(new H2("owlcms Cloud Application Dashboard "), login, signup);
+		Div mapContainerContainer = new Div();
+		mapContainerContainer.add(mapContainer);
+		mapContainerContainer.add(mapDescription);
 
-		VerticalLayout blocks = new VerticalLayout(owlcmsInfo, publicResultsInfo, hybridInfo);
-		FlexLayout page = new FlexLayout(blocks, mapContainer);
+		VerticalLayout blocks = new VerticalLayout(owlcmsInfo, publicResultsInfo);
+		FlexLayout page = new FlexLayout(blocks, mapContainerContainer);
 		page.setFlexDirection(FlexDirection.ROW);
 		// page.setFlexShrink(1.0, blocks);
-		page.setFlexGrow(0.5, blocks);
+		page.setFlexGrow(0.45, blocks);
 		page.setFlexWrap(FlexWrap.WRAP);
 		page.setSizeFull();
 		page.setFlexBasis("40%", blocks);
@@ -187,21 +188,13 @@ public class MainView extends VerticalLayout {
 	private void getLoginOverlay() {
 
 		LoginI18n i18n = LoginI18n.createDefault();
-		LoginI18n.Header i18nHeader = i18n.getHeader();
-		logger.warn("****{}", i18nHeader);
-
 		LoginI18n.Form i18nForm = i18n.getForm();
 		i18nForm.setTitle("Log in to fly.io");
-		i18nForm.setUsername("Käyttäjänimi");
-		i18nForm.setPassword("Salasana");
-		i18nForm.setSubmit("Kirjaudu sisään");
-		i18nForm.setForgotPassword("Unohtuiko salasana?");
 		i18n.setForm(i18nForm);
 
 		LoginI18n.ErrorMessage i18nErrorMessage = i18n.getErrorMessage();
-		i18nErrorMessage.setTitle("Väärä käyttäjätunnus tai salasana");
 		i18nErrorMessage.setMessage(
-		"Tarkista että käyttäjätunnus ja salasana ovat oikein ja yritä uudestaan.");
+		"Check that you are using your fly.io credentials.  If you have forgotten your password, go to the fly.io site to recover it.");
 		i18n.setErrorMessage(i18nErrorMessage);
 
 		// i18n.setAdditionalInformation("Jos tarvitset lisätietoja käyttäjälle.");
@@ -215,7 +208,8 @@ public class MainView extends VerticalLayout {
 		loginOverlay.setTitle("owlcms Cloud Application Management");
 		loginOverlay.setDescription(
 				"""
-						This application issues fly.io commands on your behalf. Your login information is used to get a permission token.
+						This application issues fly.io commands on your behalf.
+						Your login information is used to get the permission to do so.
 						The application does NOT keep your login information.
 						""");
 
