@@ -418,7 +418,7 @@ public class MainView extends VerticalLayout {
 		execArea.clear(ui);
 		execArea.setVisible(true);
 
-		execArea.append("Listing Applications. Please wait.", ui);
+		execArea.append("Retrieving your application configuration. Please wait.", ui);
 		ui.push();
 
 		new Thread(() -> {
