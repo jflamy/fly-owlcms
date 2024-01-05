@@ -21,4 +21,42 @@ vaadin-login-overlay-wrapper::part(card) {
   width: 600px;
 }
 
+@media screen and (min-width: 1600px) {
+  div.page {
+    display: grid;
+    grid-template-columns: 1fr, 1050px;
+  }
+  
+  div.info {
+    grid-column: 1/1;
+    width: 90%;
+    margin-top: 1em;
+  }
+  
+  div.map {
+    float:inline-start;
+    grid-column: 2/2;
+    grid-row: 1/span 5;
+  }
+}
+
+@media screen and (max-width: 1500px) {
+  div.page {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  
+  div.info {
+    grid-column: 1/1;
+    width: 75%;
+    margin-top: 1em;
+  }
+  
+  div.map {
+    grid-column: 1/1;
+    width: 100%;
+  }
+}
+
+
 

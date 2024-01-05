@@ -52,18 +52,13 @@ import com.vaadin.flow.router.Route;
 @Route("")
 public class MainView extends VerticalLayout {
 
-	private static final String TOKEN_KEY = Main.class.getPackage() + ".accessToken";
 	private long lastClick = 0;
 	final private Logger logger = LoggerFactory.getLogger(MainView.class);
 	// private String oldToken;
 	private ExecArea execArea;
 	private FlyCtlCommands tokenConsumer;
 	private VerticalLayout intro;
-	private VerticalLayout tokenMissing;
-	private PasswordField accessTokenField;
 	private VerticalLayout apps;
-	private Button clearToken;
-	private Button listApplications;
 	private LoginOverlay loginOverlay;
 	private MainView view;
 
@@ -88,31 +83,9 @@ public class MainView extends VerticalLayout {
 		H2 title = new H2("owlcms - fly.io cloud");
 
 		intro = buildIntro();
-		tokenMissing = buildTokenMissingExplanation();
-		accessTokenField = buildAccessTokenField();
 		apps = buildAppsPlaceholder();
-
-		clearToken = new Button("Clear Token");
-		listApplications = new Button("List Applications",
-				e -> doListApplications(tokenMissing, accessTokenField, apps, clearToken));
-		listApplications.setEnabled(false);
-		listApplications.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-		// listApplications.addClickShortcut(Key.ENTER);
-
-		accessTokenField.addValueChangeListener(
-				v -> doTokenSet(clearToken, listApplications, v));
-		clearToken.addClickListener(
-				e -> doTokenClear(tokenMissing, accessTokenField, apps, clearToken, listApplications));
-
-		// WebStorage.getItem(Storage.LOCAL_STORAGE, TOKEN_KEY,
-		// 		value -> doTokenFromStorage(tokenMissing, accessTokenField, clearToken, listApplications, value));
-
-		// HorizontalLayout buttons = new HorizontalLayout(listApplications,
-		// clearToken);
-		add(title, intro,
-				// tokenMissing, accessTokenField, buttons,
-				apps, execArea);
-		doListApplications(tokenMissing, accessTokenField, apps, clearToken);
+		add(title, intro, apps, execArea);
+		doListApplications(apps);
 	}
 
 	private void showLandingPage() {
@@ -153,50 +126,50 @@ public class MainView extends VerticalLayout {
 						</div>
 						""");
 
-		// Html propagandaInfo = new Html(
-		// """
-		// <div>
-		// <h3>How does this work and why is it free?</h3>
-		// <div>
-		// Fly.io is a cloud provider that has promotional billing for small users. They
-		// also do not bill if the actual monthly usage is under 5$.
-		// Running owlcms, its database, and the public results server costs less than
-		// the minimum billable amount, so it is free.
-		// </div>
-		// <div>
-		// This application is a "remote control" application for fly.io. Instead of you
-		// having to understand how to create and manage
-		// an application on fly.io, this site runs the commands for you.
-		// </div>
-		// <div>
-		// The commercial relationship is directly between you and fly.io. All we do is
-		// "type the commands" on your behalf. We do not
-		// get a percentage of your non-existent fees, and do not get any other
-		// advantage.
-		// </div>
-		// </div>
-		// """);
+		Html propagandaInfo = new Html(
+				"""
+						<div>
+							<h3>How does this work and why is it free?</h3>
+							<div>
+								Fly.io is a cloud provider that has promotional billing for small users. They
+								also do not bill if the actual monthly usage is under 5$.
+								Running owlcms, its database, and the public results server costs less than
+								the minimum billable amount, so it is free.
+							</div>
+							<div>
+								This application is a "remote control" application for fly.io. Instead of you
+								having to understand how to create and manage
+								an application on fly.io, this site runs the commands for you.
+							</div>
+							<div>
+								The commercial relationship is directly between you and fly.io. All we do is
+								"type the commands" on your behalf. We do not
+								get a percentage of your non-existent fees, and do not get any other
+								advantage.
+							</div>
+						</div>
+						""");
 
-		// Html antiPropagandaInfo = new Html(
-		// """
-		// <div>
-		// <h3>When to use cloud owlcms? (or not)</h3>
-		// <div>
-		// If you are hosting a major competition, we recommend that you run it locally
-		// on a laptop, and that you use your own Wifi router
-		// instead of relying on the facilities' router. In this way you can run the
-		// competition even if there is an Internet failure.
-		// Running on-site also allows using IWF-Compliant MQTT devices that you can
-		// build
-		// (<a style="text-decoration:underline"
-		// href="https://github.com/jflamy/owlcms-firmata/blob/main/README.md">see this
-		// page</a>)
-		// or buy from suppliers like <a style="text-decoration:underline"
-		// href="https://blue-owl.nemikor.com">blue-owl</a>.
-		// You would, however, still configure a public results site.
-		// </div>
-		// </div>
-		// """);
+		Html antiPropagandaInfo = new Html(
+				"""
+						<div>
+							<h3>When to use cloud owlcms? (or not)</h3>
+							<div>
+								If you are hosting a major competition, we recommend that you run it locally
+								on a laptop, and that you use your own Wifi router
+								instead of relying on the facilities' router. In this way you can run the
+								competition even if there is an Internet failure.
+								Running on-site also allows using IWF-Compliant MQTT devices that you can
+								build
+								(<a style="text-decoration:underline"
+								href="https://github.com/jflamy/owlcms-firmata/blob/main/README.md">see this
+								page</a>)
+								or buy from suppliers like <a style="text-decoration:underline"
+								href="https://blue-owl.nemikor.com">blue-owl</a>.
+								You would, however, still configure a public results site.
+							</div>
+						</div>
+						""");
 
 		Div mapContainer = new Div();
 		mapContainer.setWidth("1030px");
@@ -215,6 +188,7 @@ public class MainView extends VerticalLayout {
 		Div mapContainerContainer = new Div();
 		mapContainerContainer.add(mapContainer);
 		mapContainerContainer.add(mapDescription);
+		mapContainerContainer.setClassName("map");
 
 		getLoginOverlay();
 		Button login = new Button("Login", e -> {
@@ -225,16 +199,23 @@ public class MainView extends VerticalLayout {
 
 		HorizontalLayout topRow = new HorizontalLayout(new H2("owlcms Cloud Application Dashboard "), login);
 
-		VerticalLayout blocks1 = new VerticalLayout(owlcmsInfo, publicResultsInfo);
+		VerticalLayout blocks1 = new VerticalLayout(owlcmsInfo, publicResultsInfo, propagandaInfo, antiPropagandaInfo);
 		// VerticalLayout blocks2 = new VerticalLayout(propagandaInfo,
 		// antiPropagandaInfo);
-		FlexLayout page = new FlexLayout(blocks1, mapContainerContainer);
-		page.setFlexDirection(FlexDirection.ROW);
-		// page.setFlexShrink(1.0, blocks);
-		page.setFlexGrow(0.45, blocks1);
-		page.setFlexWrap(FlexWrap.WRAP);
-		page.setSizeFull();
-		page.setFlexBasis("40%", blocks1);
+		Div page = new Div(owlcmsInfo, publicResultsInfo, mapContainerContainer, propagandaInfo, antiPropagandaInfo);
+		page.setClassName("page");
+		// mapContainerContainer.getStyle().set("float","right");
+		owlcmsInfo.setClassName("info");
+		publicResultsInfo.setClassName("info");
+		propagandaInfo.setClassName("info");
+		antiPropagandaInfo.setClassName("info");
+
+		// page.setFlexDirection(FlexDirection.ROW);
+		// // page.setFlexShrink(1.0, blocks);
+		// page.setFlexGrow(0.45, blocks1);
+		// page.setFlexWrap(FlexWrap.WRAP);
+		// page.setSizeFull();
+		// page.setFlexBasis("40%", blocks1);
 
 		view.add(topRow, page);
 	}
@@ -303,14 +284,6 @@ public class MainView extends VerticalLayout {
 		});
 	}
 
-	private PasswordField buildAccessTokenField() {
-		PasswordField accessTokenField = new PasswordField("Access Token");
-		accessTokenField.setValueChangeMode(ValueChangeMode.EAGER);
-		accessTokenField.setWidth("45em");
-		accessTokenField.addClassName("bordered");
-		return accessTokenField;
-	}
-
 	private VerticalLayout buildAppsPlaceholder() {
 		VerticalLayout apps = new VerticalLayout();
 		apps.setMargin(false);
@@ -347,8 +320,11 @@ public class MainView extends VerticalLayout {
 	}
 
 	private VerticalLayout buildIntro() {
-		Div p1 = new Div(
-				"This page creates and manages your owlcms applications");
+		Html p1 = new Html("""
+				<div>
+				This page creates and manages your owlcms applications
+				</div>
+				""");
 		VerticalLayout intro = new VerticalLayout(p1);
 		intro.setSpacing(false);
 		intro.setPadding(false);
@@ -357,61 +333,13 @@ public class MainView extends VerticalLayout {
 		return intro;
 	}
 
-	private VerticalLayout buildTokenMissingExplanation() {
-		Anchor a = new Anchor("https://fly.io/user/personal_access_tokens",
-				"Click on this link to go to the fly.io account settings page.",
-				AnchorTarget.BLANK);
-		ListItem step1 = new ListItem(a);
-		ListItem step2 = new ListItem(
-				"Login to your account. Sign up if you don't have one. You will need to provide a credit card number, but you will NOT be charged.");
-		ListItem step3 = new ListItem(
-				"The token creation is at the top right of the account settings. Follow the steps in the image to the right.");
-		ListItem step3a = new ListItem("Type a name for your token - for example 'owlcms token' or anything you want.");
-		ListItem step3b = new ListItem("Click on the create button.");
-		ListItem step3c = new ListItem("Click on the 'Copy' icon next to the token to copy it to the clipboard.");
-		step3.add(new OrderedList(step3a, step3b, step3c));
-		ListItem step4 = new ListItem("Paste the token into the text field below.");
-		ListItem step5 = new ListItem(
-				"Your internet browser will remember the token until you clear it, so you don't have to repeat the steps.");
-		OrderedList steps = new OrderedList(step1, step2, step3, step4, step5);
-		steps.setWidth("50%");
-
-		Image howTo = new Image("img/token.png", "How to get a Token");
-		Div p2 = new Div(
-				"A fly.io access token is required to issue commands on your behalf. The token is only kept in your browser, and you can clear it at any time.");
-		Emphasis summary = new Emphasis("Click here to get a fly.io token.");
-		summary.getStyle().set("color", "red");
-		Details details = new Details(summary, new HorizontalLayout(steps, howTo));
-		VerticalLayout tokenMissing = new VerticalLayout(p2, details);
-		tokenMissing.setSpacing(false);
-		tokenMissing.setMargin(false);
-		tokenMissing.getStyle().set("margin-top", "1em");
-		tokenMissing.setPadding(false);
-		return tokenMissing;
-	}
-
-	private void doListApplications(VerticalLayout tokenMissing, PasswordField accessTokenField, VerticalLayout apps,
-			Button clearToken) {
+	private void doListApplications(VerticalLayout apps) {
 		long timeMillis = System.currentTimeMillis();
 		if (timeMillis - lastClick < 100) {
 			lastClick = timeMillis;
 			return;
 		}
 		lastClick = timeMillis;
-		// String newToken = accessTokenField.getValue();
-		// if (newToken != null) {
-		// 	tokenMissing.setVisible(false);
-		// 	clearToken.setEnabled(true);
-		// 	tokenConsumer.setToken(newToken);
-		// } else {
-		// 	tokenMissing.setVisible(true);
-		// 	clearToken.setEnabled(false);
-		// 	tokenConsumer.setToken(null);
-		// }
-
-		// if (newToken != null && (oldToken == null || !newToken.contentEquals(oldToken))) {
-		// 	WebStorage.setItem(Storage.LOCAL_STORAGE, TOKEN_KEY, newToken);
-		// }
 		apps.removeAll();
 
 		UI ui = UI.getCurrent();
@@ -428,42 +356,6 @@ public class MainView extends VerticalLayout {
 				execArea.setVisible(false);
 			});
 		}).start();
-	}
-
-	private void doTokenClear(VerticalLayout tokenMissing, PasswordField accessTokenField, VerticalLayout apps,
-			Button clearToken, Button listApplications) {
-		WebStorage.removeItem(Storage.LOCAL_STORAGE, TOKEN_KEY);
-		accessTokenField.setValue("");
-		listApplications.setEnabled(false);
-		tokenMissing.setVisible(true);
-		clearToken.setEnabled(false);
-		apps.removeAll();
-	}
-
-	// private void doTokenFromStorage(VerticalLayout tokenMissing, PasswordField accessTokenField, Button clearToken,
-	// 		Button listApplications, String value) {
-	// 	if (value != null && !value.isBlank()) {
-	// 		accessTokenField.setValue(value);
-	// 		listApplications.setEnabled(true);
-	// 		clearToken.setEnabled(true);
-	// 		tokenMissing.setVisible(false);
-	// 	} else {
-	// 		listApplications.setEnabled(false);
-	// 		clearToken.setEnabled(false);
-	// 		tokenMissing.setVisible(true);
-	// 	}
-	// 	oldToken = value;
-	// }
-
-	private void doTokenSet(Button clearToken, Button listApplications,
-			ComponentValueChangeEvent<PasswordField, String> v) {
-		if (v.getValue() != null && !v.getValue().isBlank()) {
-			listApplications.setEnabled(true);
-			clearToken.setEnabled(true);
-		} else {
-			listApplications.setEnabled(false);
-			clearToken.setEnabled(false);
-		}
 	}
 
 	private HorizontalLayout showApplication(App app) {
@@ -487,7 +379,7 @@ public class MainView extends VerticalLayout {
 			hl.add(restartButton);
 
 			ConfirmDialog deletionDialog = buildDeletionDialog(app,
-					() -> doListApplications(tokenMissing, accessTokenField, apps, clearToken));
+					() -> doListApplications(apps));
 			Button deleteButton = new Button("Delete");
 			deleteButton.addClickListener(event -> {
 				deletionDialog.open();
@@ -520,7 +412,7 @@ public class MainView extends VerticalLayout {
 								app.name = tf.getValue();
 								logger.info("creating {}", siteName);
 								tokenConsumer.appCreate(app);
-								doListApplications(tokenMissing, accessTokenField, apps, clearToken);
+								doListApplications(apps);
 							}
 						}
 					});
