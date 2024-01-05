@@ -55,7 +55,7 @@ public class MainView extends VerticalLayout {
 	private static final String TOKEN_KEY = Main.class.getPackage() + ".accessToken";
 	private long lastClick = 0;
 	final private Logger logger = LoggerFactory.getLogger(MainView.class);
-	private String oldToken;
+	// private String oldToken;
 	private ExecArea execArea;
 	private FlyCtlCommands tokenConsumer;
 	private VerticalLayout intro;
@@ -97,54 +97,106 @@ public class MainView extends VerticalLayout {
 				e -> doListApplications(tokenMissing, accessTokenField, apps, clearToken));
 		listApplications.setEnabled(false);
 		listApplications.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-		listApplications.addClickShortcut(Key.ENTER);
+		// listApplications.addClickShortcut(Key.ENTER);
 
 		accessTokenField.addValueChangeListener(
 				v -> doTokenSet(clearToken, listApplications, v));
 		clearToken.addClickListener(
 				e -> doTokenClear(tokenMissing, accessTokenField, apps, clearToken, listApplications));
 
-		WebStorage.getItem(Storage.LOCAL_STORAGE, TOKEN_KEY,
-				value -> doTokenFromStorage(tokenMissing, accessTokenField, clearToken, listApplications, value));
+		// WebStorage.getItem(Storage.LOCAL_STORAGE, TOKEN_KEY,
+		// 		value -> doTokenFromStorage(tokenMissing, accessTokenField, clearToken, listApplications, value));
 
-		HorizontalLayout buttons = new HorizontalLayout(listApplications, clearToken);
-		add(title, intro, tokenMissing, accessTokenField, buttons, apps, execArea);
+		// HorizontalLayout buttons = new HorizontalLayout(listApplications,
+		// clearToken);
+		add(title, intro,
+				// tokenMissing, accessTokenField, buttons,
+				apps, execArea);
+		doListApplications(tokenMissing, accessTokenField, apps, clearToken);
 	}
 
 	private void showLandingPage() {
 		view = this;
 		view.setSizeFull();
 
-		Html publicResultsInfo = new Html("""
-				<div>
-					<h3>Publish live results to the Internet</h3>
-					<h4 style="margin-top: 0.2em; margin-bottom: 0.2em">Either from an on-site installation or a cloud installation</h4>
-					<div>
-						Using this site you can configure a free cloud server that can be accessed by anyone
-						in the world that has internet access (on a phone, tablet or laptop). The scoreboard is live and
-						can even be used by the coaches in the warmup room or by the audience.
-					</div>
-					<div>
-						If you prefer to run your competition locally on a Windows, Mac or Linux laptop, youy can also
-						setup the free cloud results server using this site, and connect your
-						competition site to the cloud server.
-					</div>
-				</div>
-				""");
+		Html publicResultsInfo = new Html(
+				"""
+						<div>
+							<h3>Publish live results to the Internet, for free</h3>
+							<h5 style="margin-top: 0.2em; margin-bottom: 0.2em">From either on-site or cloud owlcms</h4>
+							<ul>
+								<li>
+									Use this site to create a free cloud server that will make your competition results available LIVE, with no delays.
+									To anyone in the world with internet access, on a phone, tablet, or laptop.
+								</li>
+								<li>
+									This also works if you run your competitions locally on a Windows, Mac or Linux laptop and have Internet access at your site.
+									Your results will be sent to the cloud results server.
+								</li>
+							</ul>
+						</div>
+						""");
 
 		Html owlcmsInfo = new Html(
 				"""
 						<div>
-							<h3>Run competitions in the cloud</h3>
-							If you have good Internet at your club, you can run competitions without having to
-							install anything. You can run a competition on a free cloud server.
-							<ol style="margin-top: 0.5em">
-								<li>Sign Up to fly.io(only needed once).  Fly.io has a promotional tier for small sites.  The charges
-								for an owlcms site are far less than their minimum monthly billing, so running owlcms does not cost anything.</li>
-								<li>Login and Manage your applications</li>
+							<h3>Run competitions in the cloud, for free</h3>
+							<ul>
+								<li>
+									If you have good Internet at your club, you can run competitions without having to	install anything.
+									You can run a competition on a free cloud server.
+								</li>
+								<li>
+									Use the <b>Login</b> button to create and manage your applications on the fly.io cloud.
+								</li>
 							</ol>
 						</div>
 						""");
+
+		// Html propagandaInfo = new Html(
+		// """
+		// <div>
+		// <h3>How does this work and why is it free?</h3>
+		// <div>
+		// Fly.io is a cloud provider that has promotional billing for small users. They
+		// also do not bill if the actual monthly usage is under 5$.
+		// Running owlcms, its database, and the public results server costs less than
+		// the minimum billable amount, so it is free.
+		// </div>
+		// <div>
+		// This application is a "remote control" application for fly.io. Instead of you
+		// having to understand how to create and manage
+		// an application on fly.io, this site runs the commands for you.
+		// </div>
+		// <div>
+		// The commercial relationship is directly between you and fly.io. All we do is
+		// "type the commands" on your behalf. We do not
+		// get a percentage of your non-existent fees, and do not get any other
+		// advantage.
+		// </div>
+		// </div>
+		// """);
+
+		// Html antiPropagandaInfo = new Html(
+		// """
+		// <div>
+		// <h3>When to use cloud owlcms? (or not)</h3>
+		// <div>
+		// If you are hosting a major competition, we recommend that you run it locally
+		// on a laptop, and that you use your own Wifi router
+		// instead of relying on the facilities' router. In this way you can run the
+		// competition even if there is an Internet failure.
+		// Running on-site also allows using IWF-Compliant MQTT devices that you can
+		// build
+		// (<a style="text-decoration:underline"
+		// href="https://github.com/jflamy/owlcms-firmata/blob/main/README.md">see this
+		// page</a>)
+		// or buy from suppliers like <a style="text-decoration:underline"
+		// href="https://blue-owl.nemikor.com">blue-owl</a>.
+		// You would, however, still configure a public results site.
+		// </div>
+		// </div>
+		// """);
 
 		Div mapContainer = new Div();
 		mapContainer.setWidth("1030px");
@@ -159,28 +211,30 @@ public class MainView extends VerticalLayout {
 		map.getStyle().set("left", "-5px");
 		mapContainer.add(map);
 		Div mapDescription = new Div("Users of the latest owlcms version, since Jan 01 2023");
-		getLoginOverlay();
-
-		Button login = new Button("Login", e -> {
-			view.add(loginOverlay);
-			loginOverlay.setOpened(true);
-		});
-		Button signup = new Button("Sign Up to fly.io", e -> {
-			UI.getCurrent().getPage().open("https://fly.io/app/sign-up");
-		});
-		HorizontalLayout topRow = new HorizontalLayout(new H2("owlcms Cloud Application Dashboard "), login, signup);
+		mapDescription.getStyle().set("margin-top", "-1em");
 		Div mapContainerContainer = new Div();
 		mapContainerContainer.add(mapContainer);
 		mapContainerContainer.add(mapDescription);
 
-		VerticalLayout blocks = new VerticalLayout(owlcmsInfo, publicResultsInfo);
-		FlexLayout page = new FlexLayout(blocks, mapContainerContainer);
+		getLoginOverlay();
+		Button login = new Button("Login", e -> {
+			view.add(loginOverlay);
+			loginOverlay.setOpened(true);
+		});
+		login.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+		HorizontalLayout topRow = new HorizontalLayout(new H2("owlcms Cloud Application Dashboard "), login);
+
+		VerticalLayout blocks1 = new VerticalLayout(owlcmsInfo, publicResultsInfo);
+		// VerticalLayout blocks2 = new VerticalLayout(propagandaInfo,
+		// antiPropagandaInfo);
+		FlexLayout page = new FlexLayout(blocks1, mapContainerContainer);
 		page.setFlexDirection(FlexDirection.ROW);
 		// page.setFlexShrink(1.0, blocks);
-		page.setFlexGrow(0.45, blocks);
+		page.setFlexGrow(0.45, blocks1);
 		page.setFlexWrap(FlexWrap.WRAP);
 		page.setSizeFull();
-		page.setFlexBasis("40%", blocks);
+		page.setFlexBasis("40%", blocks1);
 
 		view.add(topRow, page);
 	}
@@ -194,7 +248,7 @@ public class MainView extends VerticalLayout {
 
 		LoginI18n.ErrorMessage i18nErrorMessage = i18n.getErrorMessage();
 		i18nErrorMessage.setMessage(
-		"Check that you are using your fly.io credentials.  If you have forgotten your password, go to the fly.io site to recover it.");
+				"Check that you are using your fly.io credentials.  If you have forgotten your password, go to the fly.io site to recover it.");
 		i18n.setErrorMessage(i18nErrorMessage);
 
 		// i18n.setAdditionalInformation("Jos tarvitset lisätietoja käyttäjälle.");
@@ -213,10 +267,31 @@ public class MainView extends VerticalLayout {
 						The application does NOT keep your login information.
 						""");
 
-		loginOverlay.getFooter().add(loginCancelbutton);
+		Button signup = new Button("Sign Up to fly.io", e -> {
+			UI.getCurrent().getPage().open("https://fly.io/app/sign-up");
+		});
+		signup.addThemeVariants(ButtonVariant.LUMO_CONTRAST, ButtonVariant.LUMO_PRIMARY);
+		signup.setWidthFull();
+
+		loginOverlay.getFooter().add(signup, loginCancelbutton);
+
 		loginOverlay.addLoginListener(e -> {
 			logger.info("user login {} ", e.getUsername());
-			boolean successful = tokenConsumer.doLogin(e.getUsername(), e.getPassword());
+			boolean successful;
+			try {
+				successful = tokenConsumer.doLogin(e.getUsername(), e.getPassword());
+			} catch (NoLockException e1) {
+				successful = false;
+				Button closeButton = new Button("Close");
+				Notification not = new Notification(
+						new Text(
+								"Technical problem: Could not acquire the access token. Please report to owlcms-bugs@jflamy.dev"),
+						closeButton);
+				closeButton.addClickListener((e2) -> not.close());
+				not.addThemeVariants(NotificationVariant.LUMO_ERROR);
+				not.setPosition(Position.MIDDLE);
+				not.open();
+			}
 			if (successful) {
 				loginOverlay.setError(false);
 				loginOverlay.setOpened(false);
@@ -323,20 +398,20 @@ public class MainView extends VerticalLayout {
 			return;
 		}
 		lastClick = timeMillis;
-		String newToken = accessTokenField.getValue();
-		if (newToken != null) {
-			tokenMissing.setVisible(false);
-			clearToken.setEnabled(true);
-			tokenConsumer.setToken(newToken);
-		} else {
-			tokenMissing.setVisible(true);
-			clearToken.setEnabled(false);
-			tokenConsumer.setToken(null);
-		}
+		// String newToken = accessTokenField.getValue();
+		// if (newToken != null) {
+		// 	tokenMissing.setVisible(false);
+		// 	clearToken.setEnabled(true);
+		// 	tokenConsumer.setToken(newToken);
+		// } else {
+		// 	tokenMissing.setVisible(true);
+		// 	clearToken.setEnabled(false);
+		// 	tokenConsumer.setToken(null);
+		// }
 
-		if (newToken != null && (oldToken == null || !newToken.contentEquals(oldToken))) {
-			WebStorage.setItem(Storage.LOCAL_STORAGE, TOKEN_KEY, newToken);
-		}
+		// if (newToken != null && (oldToken == null || !newToken.contentEquals(oldToken))) {
+		// 	WebStorage.setItem(Storage.LOCAL_STORAGE, TOKEN_KEY, newToken);
+		// }
 		apps.removeAll();
 
 		UI ui = UI.getCurrent();
@@ -365,20 +440,20 @@ public class MainView extends VerticalLayout {
 		apps.removeAll();
 	}
 
-	private void doTokenFromStorage(VerticalLayout tokenMissing, PasswordField accessTokenField, Button clearToken,
-			Button listApplications, String value) {
-		if (value != null && !value.isBlank()) {
-			accessTokenField.setValue(value);
-			listApplications.setEnabled(true);
-			clearToken.setEnabled(true);
-			tokenMissing.setVisible(false);
-		} else {
-			listApplications.setEnabled(false);
-			clearToken.setEnabled(false);
-			tokenMissing.setVisible(true);
-		}
-		oldToken = value;
-	}
+	// private void doTokenFromStorage(VerticalLayout tokenMissing, PasswordField accessTokenField, Button clearToken,
+	// 		Button listApplications, String value) {
+	// 	if (value != null && !value.isBlank()) {
+	// 		accessTokenField.setValue(value);
+	// 		listApplications.setEnabled(true);
+	// 		clearToken.setEnabled(true);
+	// 		tokenMissing.setVisible(false);
+	// 	} else {
+	// 		listApplications.setEnabled(false);
+	// 		clearToken.setEnabled(false);
+	// 		tokenMissing.setVisible(true);
+	// 	}
+	// 	oldToken = value;
+	// }
 
 	private void doTokenSet(Button clearToken, Button listApplications,
 			ComponentValueChangeEvent<PasswordField, String> v) {
@@ -433,15 +508,6 @@ public class MainView extends VerticalLayout {
 						if (tf.getValue() == null || tf.getValue().isBlank()) {
 							tf.setErrorMessage("You must provide a value");
 							tf.setInvalid(true);
-							// Button closeButton = new Button("Close");
-							// Notification not = new Notification(
-							// new Text("You must provide a value"),
-							// closeButton);
-							// closeButton.addClickListener((e2) -> not.close());
-							// not.addThemeVariants(NotificationVariant.LUMO_ERROR);
-							// not.setPosition(Position.MIDDLE);
-							// not.open();
-							// UI.getCurrent().push();
 						} else {
 							String siteName = tf.getValue() + ".fly.net";
 							boolean ok = tokenConsumer.checkHostname(tf.getValue());

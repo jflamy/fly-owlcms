@@ -1,6 +1,9 @@
 package app.owlcms.fly;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -241,11 +244,12 @@ public class FlyCtlCommands {
 	}
 
 	int hostNameStatus;
+
 	public boolean checkHostname(String value) {
 		try {
 			ProcessBuilder builder = createProcessBuilder(getToken());
 			ExecutorService executorService = Executors.newCachedThreadPool();
-			builder.command("sh","-c","fly apps create --name "+value+" --org personal");
+			builder.command("sh", "-c", "fly apps create --name " + value + " --org personal");
 			Process process = builder.start();
 			hostNameStatus = 0;
 			StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
@@ -265,28 +269,90 @@ public class FlyCtlCommands {
 		return false;
 	}
 
-    public boolean doLogin(String username, String password) {
+	int tokenStatus = -1;
+	public boolean doLogin(String username, String password) throws NoLockException {
+		// if there is a config.yml file present then we can't proceed, must retry.
+		int count = 10;
+		Path configFile = Path.of(System.getProperty("user.home"), ".fly/config.yml");
+		while (Files.exists(configFile) && count++ < 20) {
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+			}
+		}
+		if (Files.exists(configFile)) {
+			logger.error("config.yml not free");
+			throw new NoLockException("config.yml not free");
+		}
+
+		// once the file is freed we lock against other instances of ourself
+		try (RandomAccessFile raf = new RandomAccessFile(
+				Path.of(
+						System.getProperty("java.io.tmpdir"),
+						"fly_owlcms.tmp")
+						.toString(),
+				"rw")) {
+
+			logger.warn("temp file {} ", raf.toString());
+
+			count = 0;
+			while (raf.getChannel().tryLock() == null && count++ < 500) {
+				Thread.sleep(10);
+			}
+			// lock acquired
+
+			try {
+				// no tokan
+				ProcessBuilder builder = createProcessBuilder(getToken());
+				builder.environment().remove("FLY_ACCESS_TOKEN");
+				ExecutorService executorService = Executors.newCachedThreadPool();
+				String loginString = "fly auth login --email " + username + " --password '" + password +"'";
+				logger.warn("login string {}", loginString);
+				builder.command("sh", "-c", loginString);
+				Process process = builder.start();
+				hostNameStatus = 0;
+				StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
+					logger.info("login {}", string);
+				});
+				StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
+					logger.error("login error {}", string);
+				});
+				executorService.submit(streamGobbler);
+				executorService.submit(streamGobbler2);
+				process.waitFor();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			// now get the token
+			try {
+				// no tokan
+				ProcessBuilder builder = createProcessBuilder(getToken());
+				ExecutorService executorService = Executors.newCachedThreadPool();
+				builder.command("sh", "-c", "fly auth token");
+				Process process = builder.start();
+				hostNameStatus = 0;
+				StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
+					logger.info("token fetch {}", string);
+					setToken(string);
+					tokenStatus = 0;
+				});
+				StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
+					logger.error("token {}", string);
+				});
+				executorService.submit(streamGobbler);
+				executorService.submit(streamGobbler2);
+				process.waitFor();
+
+				Files.delete(configFile);
+				logger.warn("status {} deleted {}", tokenStatus == 0, configFile.toAbsolutePath().toString());
+				return tokenStatus == 0;
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} catch (IOException | InterruptedException e) {
+			return false;
+		}
 		return false;
-		// try {
-		// 	ProcessBuilder builder = createProcessBuilder(getToken());
-		// 	ExecutorService executorService = Executors.newCachedThreadPool();
-		// 	builder.command("sh","-c","fly apps create --name "+username+" --org personal");
-		// 	Process process = builder.start();
-		// 	hostNameStatus = 0;
-		// 	StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
-		// 		logger.info("appCommand {}", string);
-		// 	});
-		// 	StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
-		// 		logger.error("error {}", string);
-		// 		hostNameStatus = -1;
-		// 	});
-		// 	executorService.submit(streamGobbler);
-		// 	executorService.submit(streamGobbler2);
-		// 	process.waitFor();
-		// 	return hostNameStatus == 0;
-		// } catch (Exception e) {
-		// 	e.printStackTrace();
-		// }
-		// return false;
-    }
+	}
 }
