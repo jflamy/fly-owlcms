@@ -1,47 +1,32 @@
 package app.owlcms.fly;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.security.SecureRandom;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vaadin.flow.component.AbstractField.ComponentValueChangeEvent;
 import com.vaadin.flow.component.Html;
-import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.ScrollOptions;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
-import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.AnchorTarget;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.Emphasis;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.IFrame;
-import com.vaadin.flow.component.html.Image;
-import com.vaadin.flow.component.html.ListItem;
 import com.vaadin.flow.component.html.NativeLabel;
-import com.vaadin.flow.component.html.OrderedList;
 import com.vaadin.flow.component.login.LoginI18n;
 import com.vaadin.flow.component.login.LoginOverlay;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.notification.Notification.Position;
-import com.vaadin.flow.component.orderedlayout.FlexLayout;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
-import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexWrap;
-import com.vaadin.flow.component.page.WebStorage;
-import com.vaadin.flow.component.page.WebStorage.Storage;
-import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.router.Route;
 
 /**
@@ -50,6 +35,7 @@ import com.vaadin.flow.router.Route;
  * notification.
  */
 @Route("")
+@PreserveOnRefresh
 public class MainView extends VerticalLayout {
 
 	private long lastClick = 0;
@@ -80,7 +66,7 @@ public class MainView extends VerticalLayout {
 	private void showApplicationView() {
 		this.setSpacing(false);
 		this.setHeightFull();
-		H2 title = new H2("owlcms - fly.io cloud");
+		H2 title = new H2("owlcms Cloud Applications - "+tokenConsumer.getUserName());
 
 		intro = buildIntro();
 		apps = buildAppsPlaceholder();
@@ -199,9 +185,6 @@ public class MainView extends VerticalLayout {
 
 		HorizontalLayout topRow = new HorizontalLayout(new H2("owlcms Cloud Application Dashboard "), login);
 
-		VerticalLayout blocks1 = new VerticalLayout(owlcmsInfo, publicResultsInfo, propagandaInfo, antiPropagandaInfo);
-		// VerticalLayout blocks2 = new VerticalLayout(propagandaInfo,
-		// antiPropagandaInfo);
 		Div page = new Div(owlcmsInfo, publicResultsInfo, mapContainerContainer, propagandaInfo, antiPropagandaInfo);
 		page.setClassName("page");
 		// mapContainerContainer.getStyle().set("float","right");
@@ -346,7 +329,7 @@ public class MainView extends VerticalLayout {
 		execArea.clear(ui);
 		execArea.setVisible(true);
 
-		execArea.append("Retrieving your application configuration. Please wait.", ui);
+		execArea.append("Retrieving your application configurations. Please wait.", ui);
 		ui.push();
 
 		new Thread(() -> {
@@ -358,8 +341,13 @@ public class MainView extends VerticalLayout {
 		}).start();
 	}
 
-	private HorizontalLayout showApplication(App app) {
+	private Div showApplication(App app) {
+		Div wrapper = new Div();
 		HorizontalLayout hl = new HorizontalLayout();
+		hl.setMargin(false);
+		hl.setPadding(false);
+		wrapper.add(hl);
+
 		hl.setAlignItems(Alignment.CENTER);
 		NativeLabel label = new NativeLabel(app.appType.toString());
 		label.setWidth("15em");
@@ -386,30 +374,85 @@ public class MainView extends VerticalLayout {
 			});
 			hl.add(deleteButton);
 
+			if (app.appType == AppType.PUBLICRESULTS) {
+				HorizontalLayout hl3 = new HorizontalLayout();
+				hl3.setMargin(false);
+				// hl2.setPadding(true);
+
+				NativeLabel label3 = new NativeLabel("Shared Key");
+				label3.setWidth("15em");
+				hl3.add(label3);
+				Html sharedKeyExplanation = new Html("""
+					<div stule="margin-bottom:0">
+						<div>
+							The shared key is a string that is exchanged between owlcms and publicresults so they can trust one another.
+						</div>
+						<div>
+							<em>You need to set the shared key before owlcms can publish to publicresults.</em>
+							You can reset the key at any time using this page.
+						</div>
+						<div>
+							Note that if your owlcms is running locally, you will need to set this value
+							value on the laptop using the owlcms user interface.
+						</div>
+					<div>
+						""");
+				hl3.add(sharedKeyExplanation);
+				wrapper.add(hl3);
+
+				HorizontalLayout hl2 = new HorizontalLayout();
+				// hl2.setMargin(true);
+				// hl2.setPadding(true);
+
+				NativeLabel label2 = new NativeLabel("");
+				label2.setWidth("15em");
+				hl2.add(label2);
+
+				TextField sharedKeyField = new TextField();
+				sharedKeyField.setTitle("Shared string between owlcms and public results");
+				sharedKeyField.setPlaceholder("enter a shared string");
+				sharedKeyField.setWidth("15em");
+				sharedKeyField.setValue(generateRandomString(20));
+				hl2.add(sharedKeyField);
+
+				Button sharedKeyButton = new Button("Set Shared Key and restart apps",
+						e -> {
+							if (sharedKeyField.getValue() == null || sharedKeyField.getValue().isBlank()) {
+								sharedKeyField.setErrorMessage("The shared key cannot be empty");
+								sharedKeyField.setInvalid(true);
+							} else {
+								tokenConsumer.doSetSharedKey(sharedKeyField.getValue());
+							}
+						});
+
+				hl2.add(sharedKeyButton);
+				hl3.getStyle().set("margin-top", "1em");
+				wrapper.add(hl2);
+			}
 		} else {
-			TextField tf = new TextField("");
-			tf.setValue(app.name);
-			tf.setPlaceholder("enter application name");
-			tf.setWidth("15em");
-			hl.add(tf);
-			tf.setRequired(true);
-			tf.setRequiredIndicatorVisible(true);
+			TextField nameField = new TextField("");
+			nameField.setValue(app.name);
+			nameField.setPlaceholder("enter application name");
+			nameField.setWidth("15em");
+			hl.add(nameField);
+			nameField.setRequired(true);
+			nameField.setRequiredIndicatorVisible(true);
 
 			Button creationButton = new Button("Create",
 					e -> {
-						if (tf.getValue() == null || tf.getValue().isBlank()) {
-							tf.setErrorMessage("You must provide a value");
-							tf.setInvalid(true);
+						if (nameField.getValue() == null || nameField.getValue().isBlank()) {
+							nameField.setErrorMessage("You must provide a value");
+							nameField.setInvalid(true);
 						} else {
-							String siteName = tf.getValue() + ".fly.net";
-							boolean ok = tokenConsumer.checkHostname(tf.getValue());
+							String siteName = nameField.getValue() + ".fly.net";
+							boolean ok = tokenConsumer.checkHostname(nameField.getValue());
 							if (!ok) {
-								tf.setErrorMessage(siteName + " is already taken.");
-								tf.setInvalid(true);
+								nameField.setErrorMessage(siteName + " is already taken.");
+								nameField.setInvalid(true);
 							} else {
 								// this is what we want
-								tf.setInvalid(false);
-								app.name = tf.getValue();
+								nameField.setInvalid(false);
+								app.name = nameField.getValue();
 								logger.info("creating {}", siteName);
 								tokenConsumer.appCreate(app);
 								doListApplications(apps);
@@ -417,10 +460,9 @@ public class MainView extends VerticalLayout {
 						}
 					});
 			hl.add(creationButton);
+			wrapper.add(hl);
 		}
-
-		return hl;
-
+		return wrapper;
 	}
 
 	private void showApps(Map<AppType, App> appMap, VerticalLayout apps) {
@@ -429,20 +471,36 @@ public class MainView extends VerticalLayout {
 
 		apps.getStyle().set("margin-top", "1em");
 		if (owlcmsApp != null) {
-			HorizontalLayout showOwlcmsApp = showApplication(owlcmsApp);
+			Div showOwlcmsApp = showApplication(owlcmsApp);
 			apps.add(showOwlcmsApp);
 		} else {
 			owlcmsApp = new App("", AppType.OWLCMS);
-			HorizontalLayout showOwlcmsApp = showApplication(owlcmsApp);
+			Div showOwlcmsApp = showApplication(owlcmsApp);
 			apps.add(showOwlcmsApp);
 		}
 		if (publicApp != null) {
-			HorizontalLayout showPublicApp = showApplication(publicApp);
+			Div showPublicApp = showApplication(publicApp);
 			apps.add(showPublicApp);
 		} else {
 			publicApp = new App("", AppType.PUBLICRESULTS);
-			HorizontalLayout showPublicApp = showApplication(publicApp);
+			Div showPublicApp = showApplication(publicApp);
 			apps.add(showPublicApp);
 		}
 	}
+
+	// Define printable characters
+    private static final String PRINTABLE_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}|;:,.<>?";
+
+    public String generateRandomString(int length) {
+        SecureRandom random = new SecureRandom();
+        StringBuilder stringBuilder = new StringBuilder(length);
+
+        for (int i = 0; i < length; i++) {
+            int randomIndex = random.nextInt(PRINTABLE_CHARACTERS.length());
+            char randomChar = PRINTABLE_CHARACTERS.charAt(randomIndex);
+            stringBuilder.append(randomChar);
+        }
+
+        return stringBuilder.toString();
+    }
 }

@@ -29,6 +29,8 @@ public class FlyCtlCommands {
 
 	private ExecArea execArea;
 
+	private Map<AppType, App> appMap;
+
 	public FlyCtlCommands(ExecArea execArea) {
 		this.execArea = execArea;
 	}
@@ -42,8 +44,8 @@ public class FlyCtlCommands {
 		ExecutorService executorService = Executors.newCachedThreadPool();
 		ProcessBuilder builder = createProcessBuilder(getToken());
 		List<String> appNames = getAppNames(executorService, builder, execArea, UI.getCurrent());
-		Map<AppType, App> apps = buildAppMap(executorService, builder, appNames);
-		return apps;
+		appMap = buildAppMap(executorService, builder, appNames);
+		return appMap;
 	}
 
 	public void createPublicResults(String appName, App app) {
@@ -270,6 +272,9 @@ public class FlyCtlCommands {
 	}
 
 	int tokenStatus = -1;
+
+	private String userName;
+
 	public boolean doLogin(String username, String password) throws NoLockException {
 		// if there is a config.yml file present then we can't proceed, must retry.
 		int count = 10;
@@ -306,7 +311,7 @@ public class FlyCtlCommands {
 				ProcessBuilder builder = createProcessBuilder(getToken());
 				builder.environment().remove("FLY_ACCESS_TOKEN");
 				ExecutorService executorService = Executors.newCachedThreadPool();
-				String loginString = "fly auth login --email " + username + " --password '" + password +"'";
+				String loginString = "fly auth login --email " + username + " --password '" + password + "'";
 				logger.warn("login string {}", loginString);
 				builder.command("sh", "-c", loginString);
 				Process process = builder.start();
@@ -346,6 +351,7 @@ public class FlyCtlCommands {
 
 				Files.delete(configFile);
 				logger.warn("status {} deleted {}", tokenStatus == 0, configFile.toAbsolutePath().toString());
+				this.userName = username;
 				return tokenStatus == 0;
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -354,5 +360,42 @@ public class FlyCtlCommands {
 			return false;
 		}
 		return false;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	public void doSetSharedKey(String value) {
+		for (App app : appMap.values()) {
+			if (app.appType != AppType.OWLCMS && app.appType != AppType.PUBLICRESULTS) {
+				continue;
+			}
+			try {
+				ProcessBuilder builder = createProcessBuilder(getToken());
+				ExecutorService executorService = Executors.newCachedThreadPool();
+				String secretCommandString = "fly secrets set OWLCMS_UPDATEKEY='"+ value + "' --app " + app.name;
+				builder.command("sh", "-c", secretCommandString);
+				logger.warn("setting secret {}", secretCommandString);
+				Process process = builder.start();
+				hostNameStatus = 0;
+				StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
+					logger.info("appCommand {}", string);
+				});
+				StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
+					logger.error("error {}", string);
+					hostNameStatus = -1;
+				});
+				executorService.submit(streamGobbler);
+				executorService.submit(streamGobbler2);
+				process.waitFor();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }
