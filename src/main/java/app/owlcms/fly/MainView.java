@@ -388,12 +388,14 @@ public class MainView extends VerticalLayout {
 							The shared key is a string that is exchanged between owlcms and publicresults so they can trust one another.
 						</div>
 						<div>
-							<em>You need to set the shared key before owlcms can publish to publicresults.</em>
-							You can reset the key at any time using this page.
+							<em>YOU ONLY NEED TO SET THE SHARED KEY <b>ONCE</b> before owlcms can publish to publicresults.</em>
 						</div>
 						<div>
 							Note that if your owlcms is running locally, you will need to set this value
 							value on the laptop using the owlcms user interface.
+						</div>
+						<div>
+							<em>You can change the shared key at any time if you wish.</em>
 						</div>
 					<div>
 						""");
