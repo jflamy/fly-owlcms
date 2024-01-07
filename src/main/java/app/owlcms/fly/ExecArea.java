@@ -26,15 +26,21 @@ public class ExecArea extends Pre {
         });
     };
 
-    public void append(String line, UI ui) {
+    public void appendLine(String line, UI ui, String prompt) {
         ui.access(() -> {
-            logger.warn("appending {}", line);
+            logger.info(prompt+" "+line);
             String curValue = getText();
             String newValue = curValue + System.lineSeparator() + line;
             setText(newValue);
-            logger.warn("new value {}", newValue);
             this.getElement().executeJs("var objDiv = document.getElementById('execArea');objDiv.scrollTop = objDiv.scrollHeight;objDiv.scrollIntoView(false)");
             ui.push();
         });
+    }
+
+    public void append(String string, UI ui) {
+        appendLine(string, ui, ">>>");
+    }
+    public void appendError(String string, UI ui) {
+        appendLine(string, ui, "***");
     }
 }

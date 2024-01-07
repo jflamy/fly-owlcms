@@ -1,0 +1,18 @@
+# fly.toml app configuration file generated for owlcms-next-results on 2024-01-06T09:36:55-05:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "$FLY_APP"
+primary_region = "$REGION"
+
+[build]
+  image = "owlcms/publicresults:$VERSION"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]

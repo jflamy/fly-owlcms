@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,185 +21,226 @@ import org.slf4j.LoggerFactory;
 import com.vaadin.flow.component.UI;
 
 public class FlyCtlCommands {
+	int appNameStatus;
+
+	int hostNameStatus;
+
 	Logger logger = LoggerFactory.getLogger(FlyCtlCommands.class);
+
+	String reason = "";
+
+	int tokenStatus = -1;
+
+	private Map<AppType, App> appMap;
+
+	private Path configFile;
+
+	private ExecArea execArea;
 
 	// TODO use time zone to infer a region
 	private String region = "yyz";
 
 	private String token;
 
-	private ExecArea execArea;
-
-	private Map<AppType, App> appMap;
+	private String userName;
 
 	public FlyCtlCommands(ExecArea execArea) {
 		this.execArea = execArea;
+	}
+
+	public void appCreate(App app, Runnable callback) {
+		doAppCommand(app, app.appType.script, callback);
+	}
+
+	public void appDeploy(App app) {
+		doAppCommand(app, "fly deploy --app " + app.name + " --image " + app.appType.image + ":stable" + " --ha=false", null);
+	}
+
+	public void appDestroy(App app, Runnable callback) {
+		doAppCommand(app, "fly apps destroy " + app.name + " --yes", callback);
+	}
+
+	public void appRestart(App app) {
+		doAppCommand(app, "fly apps restart --skip-health-checks " + app.name, null);
+	}
+
+	public void appSharedSecret(App app) {
+		doAppCommand(app, app.appType.script, null);
+	}
+
+	public boolean createApp(String value) {
+		try {
+			hostNameStatus = 0;
+			String commandString = "fly apps create --name " + value + " --org personal";
+			Consumer<String> outputConsumer = (string) -> {
+				logger.info("create output {}", string);
+			};
+			Consumer<String> errorConsumer = (string) -> {
+				logger.error("create error {}", string);
+				hostNameStatus = -1;
+			};
+			runCommand("create App {}", commandString, outputConsumer, errorConsumer, true, null);
+			return hostNameStatus == 0;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	public boolean doLogin(String username, String password) throws NoLockException {
+		try {
+			// we lock against other instances of ourself - we are alone messing with fly in
+			// our container
+			try (RandomAccessFile raf = new RandomAccessFile(
+					Path.of(System.getProperty("java.io.tmpdir"), "fly_owlcms.tmp").toString(), "rw")) {
+
+				acquireLock(raf);
+				removeConfig();
+				try {
+					String loginString = "fly auth login --email " + username + " --password '" + password + "'";
+					Consumer<String> outputConsumer = (string) -> {
+						logger.info("login {}", string);
+					};
+					Consumer<String> errorConsumer = (string) -> {
+						logger.error("login error {}", string);
+					};
+					// don't use existing token if present!
+					runCommand("login", loginString, outputConsumer, errorConsumer, false, null);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+
+				// now get the token
+				try {
+					// no tokan
+					tokenStatus = 0;
+					Consumer<String> outputConsumer = (string) -> {
+						logger.info("token fetch {}", string);
+						setToken(string);
+					};
+					Consumer<String> errorConsumer = (string) -> {
+						logger.error("token {}", string);
+						tokenStatus = -1;
+					};
+					String commandString = "fly auth token";
+					runCommand("getting token", commandString, outputConsumer, errorConsumer, true, null);
+
+					Files.delete(configFile);
+					logger.warn("status {} deleted {}", tokenStatus == 0, configFile.toAbsolutePath().toString());
+					this.userName = username;
+					return tokenStatus == 0;
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} catch (IOException | InterruptedException e) {
+				return false;
+			}
+		} finally {
+			try {
+				Files.deleteIfExists(configFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return false;
+	}
+
+	public void doSetSharedKey(String value) {
+		UI ui = UI.getCurrent();
+		execArea.setVisible(true);
+		new Thread(() -> {
+			execArea.clear(ui);
+			for (App app : appMap.values()) {
+				if (app.appType != AppType.OWLCMS && app.appType != AppType.PUBLICRESULTS) {
+					continue;
+				}
+				try {
+					hostNameStatus = 0;
+					String commandString = "fly secrets set OWLCMS_UPDATEKEY='" + value + "' --app " + app.name;
+					Consumer<String> outputConsumer = (string) -> {
+						execArea.append(string, ui);
+					};
+					Consumer<String> errorConsumer = (string) -> {
+						hostNameStatus = -1;
+						execArea.appendError(string, ui);
+					};
+					runCommand("setting secret {}", commandString, outputConsumer, errorConsumer, true, null);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+			}
+			ui.access(() -> execArea.setVisible(false));
+		}).start();
+	}
+
+	public synchronized Map<AppType, App> getApps() throws NoPermissionException {
+		logger.warn("getApps");
+		ProcessBuilder builder = createProcessBuilder(getToken());
+		List<String> appNames = getAppNames(builder, execArea, UI.getCurrent());
+		appMap = buildAppMap(builder, appNames);
+		return appMap;
+	}
+
+	public String getReason() {
+		return reason;
 	}
 
 	public String getToken() {
 		return token;
 	}
 
-	public Map<AppType, App> getApps() throws NoPermissionException {
-		logger.warn("getApps");
-		ExecutorService executorService = Executors.newCachedThreadPool();
-		ProcessBuilder builder = createProcessBuilder(getToken());
-		List<String> appNames = getAppNames(executorService, builder, execArea, UI.getCurrent());
-		appMap = buildAppMap(executorService, builder, appNames);
-		return appMap;
-	}
-
-	public void createPublicResults(String appName, App app) {
-		ExecutorService executorService = Executors.newCachedThreadPool();
-		ProcessBuilder builder = createProcessBuilder(token);
-
-		builder.environment().put("VERSION", "stable");
-		builder.environment().put("REGION", region);
-		builder.environment().put("FLY_APP", appName);
-
-		try {
-			builder.command("sh", "-x", "-c", "./createPublicResults.sh");
-			Process process = builder.start();
-			StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
-				logger.info("createPublicResults {}", string);
-			});
-			executorService.submit(streamGobbler);
-			process.waitFor(5, TimeUnit.SECONDS);
-			app.name = appName;
-			app.created = true;
-		} catch (Exception e) {
-			app.name = appName;
-			app.created = false;
-			e.printStackTrace();
-		}
-	}
-
-	private void doAppCommand(App app, String commandString, String... envPairs) {
-		UI ui = UI.getCurrent();
-		execArea.setVisible(true);
-		new Thread(() -> {
-			ExecutorService executorService = Executors.newCachedThreadPool();
-			ProcessBuilder builder = createProcessBuilder(token);
-
-			builder.environment().put("VERSION", "stable");
-			builder.environment().put("REGION", region);
-			builder.environment().put("FLY_APP", app.name);
-
-			if (envPairs.length > 0) {
-				for (int i = 0; i < envPairs.length; i = i + 2) {
-					builder.environment().put(envPairs[i], envPairs[i + 1]);
-					logger.warn("adding {}={}", envPairs[i], envPairs[i + 1]);
-				}
-			}
-
-			try {
-				logger.info("executing FLY_APP={} {}", app.name, commandString);
-				execArea.clear(ui);
-				builder.command("sh", "-c", commandString);
-				Process process = builder.start();
-
-				StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
-					logger.info("appCommand {}", string);
-					execArea.append(string, ui);
-				});
-				StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
-					logger.error("error {}", string);
-					execArea.append(string, ui);
-				});
-				executorService.submit(streamGobbler);
-				executorService.submit(streamGobbler2);
-				process.waitFor();
-				Thread.sleep(5000);
-				ui.access(() -> execArea.setVisible(false));
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}).start();
-	}
-
-	public void setToken(String newToken) {
-		this.token = newToken;
-	}
-
-	String reason = "";
-
-	public String getReason() {
-		return reason;
+	public String getUserName() {
+		return userName;
 	}
 
 	public void setReason(String reason) {
 		this.reason = reason;
 	}
 
-	public int getStatus() {
-		return status;
+	public void setToken(String newToken) {
+		this.token = newToken;
 	}
 
-	public void setStatus(int status) {
-		logger.warn("setting status {} {}", status, LoggerUtils.whereFrom());
-		this.status = status;
+	public void setUserName(String userName) {
+		this.userName = userName;
 	}
 
-	int status;
-
-	private List<String> getAppNames(ExecutorService executorService, ProcessBuilder builder, ExecArea area, UI ui)
-			throws NoPermissionException {
-		List<String> appNames = new ArrayList<>();
-		setReason("");
-		setStatus(0);
-
-		try {
-			builder.command("/bin/sh", "-c", "flyctl apps list --json | jq -r '.[].ID'");
-			// logger.debug("env {}", builder.environment());
-			Process process = builder.start();
-			StreamGobbler streamGobbler1 = new StreamGobbler(process.getInputStream(), (string) -> {
-				if (!string.contains("builder")) {
-					appNames.add(string);
-				}
-			});
-			StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
-				setStatus(-1);
-				setReason(string);
-				logger.error("error* {}", string);
-				area.append(string, ui);
-				reason = string;
-			});
-			executorService.submit(streamGobbler1);
-			executorService.submit(streamGobbler2);
-			process.waitFor();
-			logger.warn("status {}", status);
-		} catch (Exception e) {
-			e.printStackTrace();
-			reason = e.getMessage();
-			status = -2;
+	private void acquireLock(RandomAccessFile raf) throws IOException, InterruptedException {
+		logger.warn("lock file {} ", raf.toString());
+		int count = 0;
+		while (raf.getChannel().tryLock() == null && count++ < 500) {
+			Thread.sleep(10);
 		}
-		if (status != 0) {
-			throw new NoPermissionException(reason);
-		}
-		return appNames;
 	}
 
-	private Map<AppType, App> buildAppMap(ExecutorService executorService, ProcessBuilder builder,
+	private synchronized Map<AppType, App> buildAppMap(ProcessBuilder builder,
 			List<String> appNames) {
+		logger.warn("buildAppMap start");
 		Map<AppType, App> apps = new HashMap<>();
+
 		for (String s : appNames) {
 			try {
-				String command = "fly image show --app " + s + " --json | jq -r .[].Repository";
-				builder.command("/bin/sh", "-x", "-c", command);
-				Process process = builder.start();
-				StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
+				String commandString = "fly image show --app " + s + " --json | jq -r .[].Repository";
+				Consumer<String> outputConsumer = (string) -> {
 					AppType appType = AppType.byImage(string);
 					App app = new App(s, appType);
 					app.created = true;
 					apps.put(appType, app);
-					logger.info("{}", app);
-				});
-				executorService.submit(streamGobbler);
-				process.waitFor();
+					logger.info("adding to map {}", app);
+				};
+				Consumer<String> errorConsumer = (string) -> {
+					logger.error("appMap error {}", string);
+				};
+				runCommand("building app map {}", commandString, outputConsumer, errorConsumer, true, null);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
+		logger.warn("buildAppMap stop");
 		return apps;
 	}
 
@@ -215,8 +257,8 @@ public class FlyCtlCommands {
 		} else {
 			builder.environment().put("FLYCTL_INSTALL", homeDir + "/.fly");
 		}
-		logger.warn("FLYCTL_INSTALL {}", builder.environment().get("FLYCTL_INSTALL"));
-		logger.warn("FLY_ACCESS_TOKEN {}", builder.environment().get("FLY_ACCESS_TOKEN"));
+		logger.debug("FLYCTL_INSTALL {}", builder.environment().get("FLYCTL_INSTALL"));
+		logger.debug("FLY_ACCESS_TOKEN {}", builder.environment().get("FLY_ACCESS_TOKEN"));
 
 		builder.environment().put("PATH", "."
 				+ File.pathSeparator + homeDir + "/.fly/bin"
@@ -225,177 +267,100 @@ public class FlyCtlCommands {
 		return builder;
 	}
 
-	public void appDeploy(App app) {
-		doAppCommand(app, "fly deploy --app " + app.name + " --image " + app.appType.image + ":stable" + " --ha=false");
-	}
-
-	public void appRestart(App app) {
-		doAppCommand(app, "fly apps restart --skip-health-checks " + app.name);
-	}
-
-	public void appDestroy(App app) {
-		doAppCommand(app, "fly apps destroy " + app.name + " --yes");
-	}
-
-	public void appCreate(App app) {
-		doAppCommand(app, app.appType.script);
-	}
-
-	public void appSharedSecret(App app) {
-		doAppCommand(app, app.appType.script);
-	}
-
-	int hostNameStatus;
-
-	public boolean checkHostname(String value) {
-		try {
+	private void doAppCommand(App app, String commandString, Runnable callback, String... envPairs) {
+		UI ui = UI.getCurrent();
+		execArea.setVisible(true);
+		new Thread(() -> {
 			ProcessBuilder builder = createProcessBuilder(getToken());
-			ExecutorService executorService = Executors.newCachedThreadPool();
-			builder.command("sh", "-c", "fly apps create --name " + value + " --org personal");
-			Process process = builder.start();
-			hostNameStatus = 0;
-			StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
-				logger.info("appCommand {}", string);
-			});
-			StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
-				logger.error("error {}", string);
-				hostNameStatus = -1;
-			});
-			executorService.submit(streamGobbler);
-			executorService.submit(streamGobbler2);
-			process.waitFor();
-			return hostNameStatus == 0;
+			builder.environment().put("VERSION", "stable");
+			builder.environment().put("REGION", region);
+			builder.environment().put("FLY_APP", app.name);
+
+			if (envPairs.length > 0) {
+				for (int i = 0; i < envPairs.length; i = i + 2) {
+					builder.environment().put(envPairs[i], envPairs[i + 1]);
+					logger.warn("adding {}={}", envPairs[i], envPairs[i + 1]);
+				}
+			}
+
+			try {
+				Consumer<String> outputConsumer = (string) -> {
+					execArea.append(string, ui);
+				};
+				Consumer<String> errorConsumer = (string) -> {
+					execArea.appendError(string, ui);
+				};
+				runCommand("=========== running command {}", commandString, outputConsumer, errorConsumer, builder, callback);
+				Thread.sleep(5000);
+				ui.access(() -> execArea.setVisible(false));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}).start();
+	}
+
+	private synchronized List<String> getAppNames(ProcessBuilder builder, ExecArea execArea, UI ui)
+			throws NoPermissionException {
+		logger.warn("getAppNames start");
+		List<String> appNames = new ArrayList<>();
+		setReason("");
+		appNameStatus = 0;
+		try {
+			String commandString = "flyctl apps list --json | jq -r '.[].ID'";
+			Consumer<String> outputConsumer = (string) -> {
+				if (!string.contains("builder")) {
+					appNames.add(string);
+				}
+			};
+			Consumer<String> errorConsumer = (string) -> {
+				appNameStatus = -1;
+				setReason(string);
+				execArea.appendError(string, ui);
+				reason = string;
+			};
+			runCommand("creating app names {}", commandString, outputConsumer, errorConsumer, true, null);
 		} catch (Exception e) {
 			e.printStackTrace();
+			reason = e.getMessage();
+			appNameStatus = -2;
 		}
-		return false;
+		if (appNameStatus != 0) {
+			throw new NoPermissionException(reason);
+		}
+		logger.warn("getAppNames stop");
+		return appNames;
 	}
 
-	int tokenStatus = -1;
-
-	private String userName;
-
-	public boolean doLogin(String username, String password) throws NoLockException {
-		// if there is a config.yml file present then we can't proceed, must retry.
-		int count = 10;
-		Path configFile = Path.of(System.getProperty("user.home"), ".fly/config.yml");
-		while (Files.exists(configFile) && count++ < 20) {
-			try {
-				Thread.sleep(500);
-			} catch (InterruptedException e) {
-			}
-		}
+	private void removeConfig() throws IOException, NoLockException {
+		configFile = Path.of(System.getProperty("user.home"), ".fly/config.yml");
+		Files.delete(configFile);
 		if (Files.exists(configFile)) {
-			logger.error("config.yml not free");
+			logger.error("could not delete file");
 			throw new NoLockException("config.yml not free");
 		}
-
-		// once the file is freed we lock against other instances of ourself
-		try (RandomAccessFile raf = new RandomAccessFile(
-				Path.of(
-						System.getProperty("java.io.tmpdir"),
-						"fly_owlcms.tmp")
-						.toString(),
-				"rw")) {
-
-			logger.warn("temp file {} ", raf.toString());
-
-			count = 0;
-			while (raf.getChannel().tryLock() == null && count++ < 500) {
-				Thread.sleep(10);
-			}
-			// lock acquired
-
-			try {
-				// no tokan
-				ProcessBuilder builder = createProcessBuilder(getToken());
-				builder.environment().remove("FLY_ACCESS_TOKEN");
-				ExecutorService executorService = Executors.newCachedThreadPool();
-				String loginString = "fly auth login --email " + username + " --password '" + password + "'";
-				logger.warn("login string {}", loginString);
-				builder.command("sh", "-c", loginString);
-				Process process = builder.start();
-				hostNameStatus = 0;
-				StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
-					logger.info("login {}", string);
-				});
-				StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
-					logger.error("login error {}", string);
-				});
-				executorService.submit(streamGobbler);
-				executorService.submit(streamGobbler2);
-				process.waitFor();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
-			// now get the token
-			try {
-				// no tokan
-				ProcessBuilder builder = createProcessBuilder(getToken());
-				ExecutorService executorService = Executors.newCachedThreadPool();
-				builder.command("sh", "-c", "fly auth token");
-				Process process = builder.start();
-				hostNameStatus = 0;
-				StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
-					logger.info("token fetch {}", string);
-					setToken(string);
-					tokenStatus = 0;
-				});
-				StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
-					logger.error("token {}", string);
-				});
-				executorService.submit(streamGobbler);
-				executorService.submit(streamGobbler2);
-				process.waitFor();
-
-				Files.delete(configFile);
-				logger.warn("status {} deleted {}", tokenStatus == 0, configFile.toAbsolutePath().toString());
-				this.userName = username;
-				return tokenStatus == 0;
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		} catch (IOException | InterruptedException e) {
-			return false;
-		}
-		return false;
 	}
 
-	public String getUserName() {
-		return userName;
+	private void runCommand(String loggingMessage, String commandString, Consumer<String> outputConsumer,
+			Consumer<String> errorConsumer, boolean useToken, Runnable callback) throws IOException, InterruptedException {
+				ProcessBuilder builder = createProcessBuilder(useToken ? getToken() : null);
+				runCommand(loggingMessage, commandString, outputConsumer, errorConsumer, builder, callback);
 	}
 
-	public void setUserName(String userName) {
-		this.userName = userName;
-	}
-
-	public void doSetSharedKey(String value) {
-		for (App app : appMap.values()) {
-			if (app.appType != AppType.OWLCMS && app.appType != AppType.PUBLICRESULTS) {
-				continue;
-			}
-			try {
-				ProcessBuilder builder = createProcessBuilder(getToken());
-				ExecutorService executorService = Executors.newCachedThreadPool();
-				String secretCommandString = "fly secrets set OWLCMS_UPDATEKEY='"+ value + "' --app " + app.name;
-				builder.command("sh", "-c", secretCommandString);
-				logger.warn("setting secret {}", secretCommandString);
-				Process process = builder.start();
-				hostNameStatus = 0;
-				StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), (string) -> {
-					logger.info("appCommand {}", string);
-				});
-				StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), (string) -> {
-					logger.error("error {}", string);
-					hostNameStatus = -1;
-				});
-				executorService.submit(streamGobbler);
-				executorService.submit(streamGobbler2);
-				process.waitFor();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+	private void runCommand(String loggingMessage, String commandString, Consumer<String> outputConsumer,
+			Consumer<String> errorConsumer, ProcessBuilder builder, Runnable callback) throws IOException, InterruptedException {
+		ExecutorService executorService = Executors.newFixedThreadPool(2);
+		builder.command("sh", "-c", commandString);
+		logger.warn(loggingMessage, commandString);
+		Process process = builder.start();
+		StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), outputConsumer);
+		StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), errorConsumer);
+		executorService.submit(streamGobbler);
+		executorService.submit(streamGobbler2);
+		process.waitFor();
+		executorService.shutdown();
+		executorService.awaitTermination(30, TimeUnit.SECONDS);
+		if (callback != null) {
+			callback.run();
 		}
 	}
 }
