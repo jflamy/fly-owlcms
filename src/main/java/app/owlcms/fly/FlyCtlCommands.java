@@ -1,7 +1,6 @@
 package app.owlcms.fly;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
@@ -19,32 +18,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.server.VaadinSession;
 
 public class FlyCtlCommands {
 	int appNameStatus;
-
 	int hostNameStatus;
-
 	Logger logger = LoggerFactory.getLogger(FlyCtlCommands.class);
-
 	String reason = "";
-
 	int tokenStatus = -1;
-
 	private Map<AppType, App> appMap;
-
 	private Path configFile;
-
 	private ExecArea execArea;
 
-	// TODO use time zone to infer a region
+	// FIXME need a way to set or infer region
 	private String region = "yyz";
+	private UI ui;
 
-	private String token;
-
-	private String userName;
-
-	public FlyCtlCommands(ExecArea execArea) {
+	public FlyCtlCommands(UI ui, ExecArea execArea) {
+		this.ui = ui;
 		this.execArea = execArea;
 	}
 
@@ -53,7 +44,8 @@ public class FlyCtlCommands {
 	}
 
 	public void appDeploy(App app) {
-		doAppCommand(app, "fly deploy --app " + app.name + " --image " + app.appType.image + ":stable" + " --ha=false", null);
+		doAppCommand(app, "fly deploy --app " + app.name + " --image " + app.appType.image + ":stable" + " --ha=false",
+		        null);
 	}
 
 	public void appDestroy(App app, Runnable callback) {
@@ -87,12 +79,14 @@ public class FlyCtlCommands {
 		return false;
 	}
 
+	String loginToken = "";
+	private String tokenFetch;
 	public boolean doLogin(String username, String password) throws NoLockException {
 		try {
 			// we lock against other instances of ourself - we are alone messing with fly in
 			// our container
 			try (RandomAccessFile raf = new RandomAccessFile(
-					Path.of(System.getProperty("java.io.tmpdir"), "fly_owlcms.tmp").toString(), "rw")) {
+			        Path.of(System.getProperty("java.io.tmpdir"), "fly_owlcms.tmp").toString(), "rw")) {
 
 				acquireLock(raf);
 				removeConfig();
@@ -116,7 +110,7 @@ public class FlyCtlCommands {
 					tokenStatus = 0;
 					Consumer<String> outputConsumer = (string) -> {
 						logger.info("token fetch {}", string);
-						setToken(string);
+						loginToken = string;
 					};
 					Consumer<String> errorConsumer = (string) -> {
 						logger.error("token {}", string);
@@ -127,7 +121,8 @@ public class FlyCtlCommands {
 
 					Files.delete(configFile);
 					logger.warn("status {} deleted {}", tokenStatus == 0, configFile.toAbsolutePath().toString());
-					this.userName = username;
+					this.setToken(loginToken);
+					this.setUserName(username);
 					return tokenStatus == 0;
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -188,13 +183,18 @@ public class FlyCtlCommands {
 	public String getReason() {
 		return reason;
 	}
-
+	
 	public String getToken() {
-		return token;
+		ui.access(() -> {
+			tokenFetch = (String) ui.getSession().getAttribute("accessToken");
+			logger.warn("GETTING TOKEN {} {} {}", ui.getSession(), tokenFetch, LoggerUtils.whereFrom());
+		});
+		return tokenFetch;
 	}
 
+
 	public String getUserName() {
-		return userName;
+		return (String) VaadinSession.getCurrent().getAttribute("userName");
 	}
 
 	public void setReason(String reason) {
@@ -202,11 +202,14 @@ public class FlyCtlCommands {
 	}
 
 	public void setToken(String newToken) {
-		this.token = newToken;
+		ui.access(() -> {
+			logger.warn("SETTING TOKEN {} {} {}", ui.getSession(), newToken, LoggerUtils.whereFrom());
+			ui.getSession().setAttribute("accessToken", newToken);
+		});
 	}
 
 	public void setUserName(String userName) {
-		this.userName = userName;
+		VaadinSession.getCurrent().setAttribute("userName", userName);
 	}
 
 	private void acquireLock(RandomAccessFile raf) throws IOException, InterruptedException {
@@ -218,7 +221,7 @@ public class FlyCtlCommands {
 	}
 
 	private synchronized Map<AppType, App> buildAppMap(ProcessBuilder builder,
-			List<String> appNames) {
+	        List<String> appNames) {
 		logger.warn("buildAppMap start");
 		Map<AppType, App> apps = new HashMap<>();
 
@@ -261,9 +264,9 @@ public class FlyCtlCommands {
 		logger.debug("FLY_ACCESS_TOKEN {}", builder.environment().get("FLY_ACCESS_TOKEN"));
 
 		builder.environment().put("PATH", "."
-				+ File.pathSeparator + homeDir + "/.fly/bin"
-				+ File.pathSeparator + "/app/fly/bin"
-				+ File.pathSeparator + path);
+		        + File.pathSeparator + homeDir + "/.fly/bin"
+		        + File.pathSeparator + "/app/fly/bin"
+		        + File.pathSeparator + path);
 		return builder;
 	}
 
@@ -290,7 +293,8 @@ public class FlyCtlCommands {
 				Consumer<String> errorConsumer = (string) -> {
 					execArea.appendError(string, ui);
 				};
-				runCommand("=========== running command {}", commandString, outputConsumer, errorConsumer, builder, callback);
+				runCommand("=========== running command {}", commandString, outputConsumer, errorConsumer, builder,
+				        callback);
 				Thread.sleep(5000);
 				ui.access(() -> execArea.setVisible(false));
 			} catch (Exception e) {
@@ -300,7 +304,7 @@ public class FlyCtlCommands {
 	}
 
 	private synchronized List<String> getAppNames(ProcessBuilder builder, ExecArea execArea, UI ui)
-			throws NoPermissionException {
+	        throws NoPermissionException {
 		logger.warn("getAppNames start");
 		List<String> appNames = new ArrayList<>();
 		setReason("");
@@ -341,13 +345,15 @@ public class FlyCtlCommands {
 	}
 
 	private void runCommand(String loggingMessage, String commandString, Consumer<String> outputConsumer,
-			Consumer<String> errorConsumer, boolean useToken, Runnable callback) throws IOException, InterruptedException {
-				ProcessBuilder builder = createProcessBuilder(useToken ? getToken() : null);
-				runCommand(loggingMessage, commandString, outputConsumer, errorConsumer, builder, callback);
+	        Consumer<String> errorConsumer, boolean useToken, Runnable callback)
+	        throws IOException, InterruptedException {
+		ProcessBuilder builder = createProcessBuilder(useToken ? getToken() : null);
+		runCommand(loggingMessage, commandString, outputConsumer, errorConsumer, builder, callback);
 	}
 
 	private void runCommand(String loggingMessage, String commandString, Consumer<String> outputConsumer,
-			Consumer<String> errorConsumer, ProcessBuilder builder, Runnable callback) throws IOException, InterruptedException {
+	        Consumer<String> errorConsumer, ProcessBuilder builder, Runnable callback)
+	        throws IOException, InterruptedException {
 		ExecutorService executorService = Executors.newFixedThreadPool(2);
 		builder.command("sh", "-c", commandString);
 		logger.warn(loggingMessage, commandString);
