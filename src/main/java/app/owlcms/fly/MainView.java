@@ -36,6 +36,7 @@ import com.vaadin.flow.router.Route;
 // @PreserveOnRefresh
 public class MainView extends VerticalLayout {
 
+	private static final String LEFT_LABEL_WIDTH = "10em";
 	private long lastClick = 0;
 	final private Logger logger = LoggerFactory.getLogger(MainView.class);
 	// private String oldToken;
@@ -298,8 +299,14 @@ public class MainView extends VerticalLayout {
 
 	private VerticalLayout buildIntro() {
 		Html p1 = new Html("""
-		        <div>
-		        This page creates and manages your owlcms applications
+		        <div style="width: 60em">
+		        This page creates and manages your owlcms applications on the fly.io cloud.
+				<ul>
+					<li>Scenario 1: <b>cloud owlcms only</b>: create only owlcms, don't create a publicresults</li>
+					<li>Scenario 2: <b>both owlcms and publicresults in the cloud</b>. Create both using this page, then set the shared key.</li>
+					<li>Scenario 3: <b>owlcms at the competition site and cloud publicresults</b>:
+					 create only publicresults, and set the shared key.  You need to copy the shared key to the laptop</li>
+				</ul>
 		        </div>
 		        """);
 		VerticalLayout intro = new VerticalLayout(p1);
@@ -341,7 +348,7 @@ public class MainView extends VerticalLayout {
 
 		hl.setAlignItems(Alignment.CENTER);
 		NativeLabel label = new NativeLabel(app.appType.toString());
-		label.setWidth("15em");
+		label.setWidth(LEFT_LABEL_WIDTH);
 		hl.add(label);
 		UI ui = UI.getCurrent();
 
@@ -369,19 +376,19 @@ public class MainView extends VerticalLayout {
 				HorizontalLayout hl1 = new HorizontalLayout();
 				hl1.setMargin(false);
 				NativeLabel label1 = new NativeLabel("Shared Key");
-				label1.setWidth("15em");
+				label1.setWidth(LEFT_LABEL_WIDTH);
 				Html sharedKeyExplanation1 = new Html("""
-				        <div style="margin-bottom:0; width: 40em">
+				        <div style="margin-bottom:0; width: 45em">
 				        	<div>
-				        		<em>YOU NEED TO SET THE SHARED KEY <b>ONCE</b> once both owlcms and publicresults are present.</em>
+				        		<em>YOU NEED TO SET THE SHARED KEY ONCE, when both owlcms and publicresults are present.</em>
 				        	</div>
 				        </div>
 				        """);
 				hl1.add(label1, sharedKeyExplanation1);
 				
 				HorizontalLayout hl2 = new HorizontalLayout();
-				NativeLabel label2 = new NativeLabel("");
-				label2.setWidth("15em");
+				NativeLabel label2 = new NativeLabel("Shared Key");
+				label2.setWidth(LEFT_LABEL_WIDTH);
 				TextField sharedKeyField = new TextField();
 				sharedKeyField.setTitle("Shared string between owlcms and public results");
 				sharedKeyField.setPlaceholder("enter a shared string");
@@ -401,25 +408,26 @@ public class MainView extends VerticalLayout {
 				HorizontalLayout hl3 = new HorizontalLayout();
 				hl3.setMargin(false);
 				NativeLabel label3 = new NativeLabel("");
-				label3.setWidth("15em");
+				label3.setWidth(LEFT_LABEL_WIDTH);
 				Html sharedKeyExplanation3 = new Html("""
-				        <ul style="margin-bottom:0; width: 40em">
-				        	<li>
-					        	The shared key is a string that is exchanged between owlcms and publicresults so they can trust one another.
-				        	</li>
-				        	<li>
-				        		If your owlcms is running locally at the competition site, you will need to set this
-				        		value as the shared key on the laptop using the owlcms user interface, in the Preparation - Settings - Connexions section.
-				        	</li>
-				        	<li>
-				        		<em>Setting the shared key is only needed once, but you can change the shared key at any time if you wish.</em>
-				        	</li>
-				        </ul>
-				        """);
+						<div>
+							The shared key is a value that is exchanged between owlcms and publicresults so they can trust one another. Setting the shared key is only needed once.
+							<ul style="margin:0; width: 45em">
+								<li>
+									<em>IIf your owlcms is running locally at the competition site</em>, you will need to set this
+									value as the shared key on the laptop using the owlcms user interface, in the Preparation - Settings - Connexions section.
+								</li>
+								<li>
+									<em>If you are running both owlcms and publicresults in the cloud</em>, then this button will set the shared key for both.
+									Wait until you have created both owlcms and publicresults.
+								</li>
+							</ul>
+						</div>
+						""");
 				hl3.add(label3,sharedKeyExplanation3);
 
-				hl1.getStyle().set("margin-top", "1em");
-				publicResultsSection.add(hl1,hl2,hl3);
+				hl2.getStyle().set("margin-top", "1em");
+				publicResultsSection.add(hl2,hl3);
 			}
 		} else {
 			TextField nameField = new TextField("");
