@@ -2,7 +2,6 @@ package app.owlcms.fly;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -81,14 +80,11 @@ public class FlyCtlCommands {
 
 	String loginToken = "";
 	private String tokenFetch;
-	public boolean doLogin(String username, String password) throws NoLockException {
-		try {
-			// we lock against other instances of ourself - we are alone messing with fly in
-			// our container
-			try (RandomAccessFile raf = new RandomAccessFile(
-			        Path.of(System.getProperty("java.io.tmpdir"), "fly_owlcms.tmp").toString(), "rw")) {
 
-				acquireLock(raf);
+	public boolean doLogin(String username, String password) throws NoLockException {
+		synchronized (Main.vaadinBoot) {
+			// we lock against other HTTP threads in our own JVM - we are alone messing with fly in our container
+			try {
 				removeConfig();
 				try {
 					String loginString = "fly auth login --email " + username + " --password '" + password + "'";
@@ -106,7 +102,6 @@ public class FlyCtlCommands {
 
 				// now get the token
 				try {
-					// no tokan
 					tokenStatus = 0;
 					Consumer<String> outputConsumer = (string) -> {
 						logger.info("token fetch {}", string);
@@ -117,6 +112,8 @@ public class FlyCtlCommands {
 						tokenStatus = -1;
 					};
 					String commandString = "fly auth token";
+					// last argument is null because we don't want to provide a token
+					// since we are fetching one
 					runCommand("getting token", commandString, outputConsumer, errorConsumer, true, null);
 
 					Files.delete(configFile);
@@ -124,20 +121,20 @@ public class FlyCtlCommands {
 					this.setToken(loginToken);
 					this.setUserName(username);
 					return tokenStatus == 0;
-				} catch (Exception e) {
+				} catch (IOException | InterruptedException e) {
+					return false;
+				}
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			} finally {
+				try {
+					Files.deleteIfExists(configFile);
+				} catch (IOException e) {
 					e.printStackTrace();
 				}
-			} catch (IOException | InterruptedException e) {
-				return false;
 			}
-		} finally {
-			try {
-				Files.deleteIfExists(configFile);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			return false;
 		}
-		return false;
 	}
 
 	public void doSetSharedKey(String value) {
@@ -183,7 +180,7 @@ public class FlyCtlCommands {
 	public String getReason() {
 		return reason;
 	}
-	
+
 	public String getToken() {
 		ui.access(() -> {
 			tokenFetch = (String) ui.getSession().getAttribute("accessToken");
@@ -191,7 +188,6 @@ public class FlyCtlCommands {
 		});
 		return tokenFetch;
 	}
-
 
 	public String getUserName() {
 		return (String) VaadinSession.getCurrent().getAttribute("userName");
@@ -210,14 +206,6 @@ public class FlyCtlCommands {
 
 	public void setUserName(String userName) {
 		VaadinSession.getCurrent().setAttribute("userName", userName);
-	}
-
-	private void acquireLock(RandomAccessFile raf) throws IOException, InterruptedException {
-		logger.warn("lock file {} ", raf.toString());
-		int count = 0;
-		while (raf.getChannel().tryLock() == null && count++ < 500) {
-			Thread.sleep(10);
-		}
 	}
 
 	private synchronized Map<AppType, App> buildAppMap(ProcessBuilder builder,
