@@ -5,8 +5,6 @@ import org.slf4j.LoggerFactory;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.Pre;
-import com.vaadin.flow.component.orderedlayout.Scroller;
-import com.vaadin.flow.component.orderedlayout.ScrollerVariant;
 
 public class ExecArea extends Pre {
 
@@ -24,7 +22,7 @@ public class ExecArea extends Pre {
             this.setText("");
             ui.push();
         });
-    };
+    }
 
     public void appendLine(String line, UI ui, String prompt) {
         ui.access(() -> {

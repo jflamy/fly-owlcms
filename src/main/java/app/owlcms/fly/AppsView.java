@@ -32,7 +32,10 @@ public class AppsView extends VerticalLayout {
 
 	private static final String LEFT_LABEL_WIDTH = "10em";
 	private long lastClick = 0;
+
+	@SuppressWarnings("unused")
 	final private Logger logger = LoggerFactory.getLogger(AppsView.class);
+
 	private ExecArea execArea;
 	private FlyCtlCommands tokenConsumer;
 	private VerticalLayout intro;
@@ -197,7 +200,7 @@ public class AppsView extends VerticalLayout {
 				        </div>
 				        """);
 				hl1.add(label1, sharedKeyExplanation1);
-				
+
 				HorizontalLayout hl2 = new HorizontalLayout();
 				NativeLabel label2 = new NativeLabel("Shared Key");
 				label2.setWidth(LEFT_LABEL_WIDTH);

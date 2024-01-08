@@ -25,7 +25,7 @@ public class MainView extends VerticalLayout {
 
 	@SuppressWarnings("unused")
 	final private Logger logger = LoggerFactory.getLogger(MainView.class);
-	
+
 	// private String oldToken;
 	private ExecArea execArea;
 	private FlyCtlCommands tokenConsumer;

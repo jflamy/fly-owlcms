@@ -15,11 +15,11 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import ch.qos.logback.classic.Logger;
 
 public class Login extends LoginOverlay {
-	
+
 	Logger logger = (Logger) LoggerFactory.getLogger(Login.class);
 	private Runnable callback;
 	private FlyCtlCommands tokenConsumer;
-	
+
 	Login(Runnable callbackArg, FlyCtlCommands tokenConsumerArg) {
 		this.setCallback(callbackArg);
 		this.setTokenConsumer(tokenConsumerArg);

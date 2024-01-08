@@ -10,7 +10,7 @@ public enum AppType {
 
     public final String image;
     public final String script;
-    
+
     private static final Map<String, AppType> BY_IMAGE = new HashMap<>();
     static {
         for (AppType e : values()) {
