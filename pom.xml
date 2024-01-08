@@ -107,6 +107,12 @@
 		</dependency>
 
 		<dependency>
+			<groupId>com.maxmind.geoip2</groupId>
+			<artifactId>geoip2</artifactId>
+			<version>4.2.0</version>
+		</dependency>
+		
+		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
 			<version>1.4.14</version>

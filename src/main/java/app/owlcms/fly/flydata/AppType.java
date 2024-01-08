@@ -1,4 +1,4 @@
-package app.owlcms.fly;
+package app.owlcms.fly.flydata;
 
 import java.util.HashMap;
 import java.util.Map;

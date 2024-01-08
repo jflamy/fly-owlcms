@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,11 @@ import org.slf4j.LoggerFactory;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.server.VaadinSession;
+
+import app.owlcms.fly.flydata.App;
+import app.owlcms.fly.flydata.AppType;
+import app.owlcms.fly.flydata.EarthLocation;
+
 
 public class FlyCtlCommands {
 	int appNameStatus;
@@ -179,6 +185,19 @@ public class FlyCtlCommands {
 		appMap = buildAppMap(builder, appNames);
 		return appMap;
 	}
+	
+	public synchronized List<EarthLocation> getServerLocations(EarthLocation clientLocation) {
+		ProcessBuilder builder = createProcessBuilder(getToken());
+		List<EarthLocation> locations = getLocations(builder, execArea, UI.getCurrent());
+		if (clientLocation != null) {
+			for (EarthLocation l : locations) {
+				l.calculateDistance(clientLocation);
+			}
+		}
+		locations.sort(Comparator.comparing(EarthLocation::getDistance));
+		logger.warn("servers: {}",locations);
+		return locations;
+	}
 
 	public String getReason() {
 		return reason;
@@ -261,7 +280,7 @@ public class FlyCtlCommands {
 		new Thread(() -> {
 			ProcessBuilder builder = createProcessBuilder(getToken());
 			builder.environment().put("VERSION", "stable");
-			builder.environment().put("REGION", region);
+			builder.environment().put("REGION", getRegion());
 			builder.environment().put("FLY_APP", app.name);
 
 			if (envPairs.length > 0) {
@@ -290,7 +309,6 @@ public class FlyCtlCommands {
 
 	private synchronized List<String> getAppNames(ProcessBuilder builder, ExecArea execArea, UI ui)
 	        throws NoPermissionException {
-		logger.warn("getAppNames start");
 		List<String> appNames = new ArrayList<>();
 		setReason("");
 		appNameStatus = 0;
@@ -313,10 +331,34 @@ public class FlyCtlCommands {
 			reason = e.getMessage();
 			appNameStatus = -2;
 		}
-		logger.warn("getAppNames stop");
 		return appNames;
 	}
+	
+	private synchronized List<EarthLocation> getLocations(ProcessBuilder builder, ExecArea execArea, UI ui)
+	        throws NoPermissionException {
+		List<EarthLocation> locations = new ArrayList<>();
+		appNameStatus = 0;
+		try {
+			String commandString = "flyctl platform regions --json | jq -r '.[] | select(.RequiresPaidPlan == false) | [.Name, .Code, .Latitude, .Longitude] | @tsv'";
+			Consumer<String> outputConsumer = (string) -> {
+				String[] values = string.split("\t");
+				locations.add(new EarthLocation(values[0], values[1], Double.parseDouble(values[2]), Double.parseDouble(values[3])));
+			};
+			Consumer<String> errorConsumer = (string) -> {
+				appNameStatus = -1;
+				execArea.appendError(string, ui);
+			};
+			runCommand("creating app names {}", commandString, outputConsumer, errorConsumer, true, null);
+		} catch (Exception e) {
+			e.printStackTrace();
+			reason = e.getMessage();
+			appNameStatus = -2;
+		}
+		return locations;
+	}
 
+	//flyctl platform regions --json | jq -r '.[] | select(.RequiresPaidPlan == false) | [.Name, .Latitude, .Longitude] | @tsv'
+	
 	private void removeConfig() throws IOException, NoLockException {
 		configFile = Path.of(System.getProperty("user.home"), ".fly/config.yml");
 		try {
@@ -367,4 +409,14 @@ public class FlyCtlCommands {
 			callback.run();
 		}
 	}
+
+	private String getRegion() {
+		return region;
+	}
+
+	private void setRegion(String region) {
+		this.region = region;
+	}
+
+
 }

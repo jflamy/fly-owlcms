@@ -1,8 +1,9 @@
 # owlcms - fly.io cloud application deployment and management
 
-[fly.io](https://fly.io) is an affordable cloud deployment platform for [owlcms](https://github.com/jflamy/owlcms4) .  
+[fly.io](https://fly.io) is free cloud deployment platform for [owlcms](https://github.com/jflamy/owlcms4) .  
+The service is free because the monthly fees are well below the minimal charging fees of 5 US$ and no bill is emitted.
 
-This application automates the deployment process so that it is easy to
+This application automates the owlcms deployment process so that it is easy to
 
 - create an owlcms application and update it to the latest version when desired
 - create a public results application and update it to the latest version when desired

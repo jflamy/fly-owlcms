@@ -1,8 +1,8 @@
-package app.owlcms.fly;
+package app.owlcms.fly.flydata;
 
 public class App implements Comparable<App> {
-    AppType appType;
-    String name;
+    public AppType appType;
+    public String name;
     public boolean created;
 
     public App(String s, AppType appType) {

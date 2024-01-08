@@ -1,6 +1,7 @@
 package app.owlcms.fly;
 
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -9,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.AnchorTarget;
@@ -20,7 +22,15 @@ import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.renderer.TextRenderer;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.VaadinServletRequest;
+
+import app.owlcms.fly.flydata.App;
+import app.owlcms.fly.flydata.AppType;
+import app.owlcms.fly.flydata.EarthLocation;
+import app.owlcms.fly.flydata.GeoLocator;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * The main view contains a text field for getting the user name and a button that shows a greeting message in a
@@ -37,17 +47,18 @@ public class AppsView extends VerticalLayout {
 	final private Logger logger = LoggerFactory.getLogger(AppsView.class);
 
 	private ExecArea execArea;
-	private FlyCtlCommands tokenConsumer;
+	private FlyCtlCommands flyCommands;
 	private VerticalLayout intro;
 	private VerticalLayout apps;
+	private String ipAddressString;
 
 	public AppsView() {
 		execArea = new ExecArea();
 		execArea.setVisible(false);
 		execArea.setSizeFull();
-		tokenConsumer = new FlyCtlCommands(UI.getCurrent(), execArea);
-		if (tokenConsumer.getToken() == null) {
-			Login loginOverlay = new Login(tokenConsumer);
+		flyCommands = new FlyCtlCommands(UI.getCurrent(), execArea);
+		if (flyCommands.getToken() == null) {
+			Login loginOverlay = new Login(flyCommands);
 			loginOverlay.setCallback(() -> {
 				loginOverlay.setOpened(false);
 				this.removeAll();
@@ -63,9 +74,9 @@ public class AppsView extends VerticalLayout {
 	private void showApplicationView() {
 		this.setSpacing(false);
 		this.setHeightFull();
-		H2 title = new H2("owlcms Cloud Applications - " + tokenConsumer.getUserName());
+		H2 title = new H2("owlcms Cloud Applications - " + flyCommands.getUserName());
 		Button logoutButton = new Button("Logout", (e) -> {
-			tokenConsumer.setToken(null);
+			flyCommands.setToken(null);
 			Notification.show("Logged out", 1000, Position.TOP_END);
 			UI.getCurrent().navigate("");
 		});
@@ -100,9 +111,9 @@ public class AppsView extends VerticalLayout {
 		deletionDialog.setCancelText("Cancel");
 		deletionDialog.addConfirmListener(e -> {
 			execArea.append("Deleting " + app.name, UI.getCurrent());
-			tokenConsumer.appDestroy(app, callback);
+			flyCommands.appDestroy(app, callback);
 			if (app.appType == AppType.OWLCMS) {
-				App dbApp = tokenConsumer.getApps().get(AppType.DB);
+				App dbApp = flyCommands.getApps().get(AppType.DB);
 				execArea.append("Deleting associated database " + dbApp.name, UI.getCurrent());
 			}
 		});
@@ -132,7 +143,24 @@ public class AppsView extends VerticalLayout {
 		return intro;
 	}
 
-	private void doListApplications(VerticalLayout apps, UI ui) {
+	public String getClientIp() {
+		HttpServletRequest request;
+		VaadinServletRequest current = VaadinServletRequest.getCurrent();
+		request = current.getHttpServletRequest();
+
+		String remoteAddr = "";
+
+		if (request != null) {
+			remoteAddr = request.getHeader("X-FORWARDED-FOR");
+			if (remoteAddr == null || "".equals(remoteAddr)) {
+				remoteAddr = request.getRemoteAddr();
+			}
+		}
+		return remoteAddr;
+	}
+
+	
+	private void doListApplications(VerticalLayout appsArea, UI ui) {
 		long timeMillis = System.currentTimeMillis();
 		if (timeMillis - lastClick < 100) {
 			lastClick = timeMillis;
@@ -142,17 +170,31 @@ public class AppsView extends VerticalLayout {
 
 		new Thread(() -> {
 			ui.access(() -> {
-				apps.removeAll();
+				appsArea.removeAll();
 				execArea.clear(ui);
 				execArea.setVisible(true);
 				execArea.append("Retrieving your application configurations. Please wait.", ui);
+				
+				// this also retrieves the region for the applications if available
+				Map<AppType, App> appsList = flyCommands.getApps();
+				EarthLocation clientIpLocation = null;
+				if (ipAddressString == null) {
+					ipAddressString = getClientIp();
+					clientIpLocation = GeoLocator.locate(ipAddressString);
+				}
+				
+				// list is sorted with closest region at the top
+				List<EarthLocation> serverLocations = flyCommands.getServerLocations(clientIpLocation);
+				showLocations(serverLocations,appsArea);
 				ui.push();
-				showApps(tokenConsumer.getApps(), apps);
+				showApps(appsList, appsArea);
 				execArea.clear(ui);
 				execArea.setVisible(false);
 			});
 		}).start();
 	}
+
+
 
 	private Div showApplication(App app) {
 		Div publicResultsSection = new Div();
@@ -173,11 +215,11 @@ public class AppsView extends VerticalLayout {
 			a.setWidth("15em");
 			hl.add(a);
 			Button updateButton = new Button("Update",
-			        e -> tokenConsumer.appDeploy(app));
+			        e -> flyCommands.appDeploy(app));
 			hl.add(updateButton);
 
 			Button restartButton = new Button("Restart",
-			        e -> tokenConsumer.appRestart(app));
+			        e -> flyCommands.appRestart(app));
 			hl.add(restartButton);
 			ConfirmDialog deletionDialog = buildDeletionDialog(app,
 			        () -> doListApplications(apps, ui));
@@ -215,7 +257,7 @@ public class AppsView extends VerticalLayout {
 						        sharedKeyField.setErrorMessage("The shared key cannot be empty");
 						        sharedKeyField.setInvalid(true);
 					        } else {
-						        tokenConsumer.doSetSharedKey(sharedKeyField.getValue());
+						        flyCommands.doSetSharedKey(sharedKeyField.getValue());
 					        }
 				        });
 				hl2.add(label2, sharedKeyField, sharedKeyButton);
@@ -260,7 +302,7 @@ public class AppsView extends VerticalLayout {
 					        nameField.setInvalid(true);
 				        } else {
 					        String siteName = nameField.getValue() + ".fly.net";
-					        boolean ok = tokenConsumer.createApp(nameField.getValue());
+					        boolean ok = flyCommands.createApp(nameField.getValue());
 					        if (!ok) {
 						        nameField.setErrorMessage(siteName + " is already taken.");
 						        nameField.setInvalid(true);
@@ -268,7 +310,7 @@ public class AppsView extends VerticalLayout {
 						        // this is what we want
 						        nameField.setInvalid(false);
 						        app.name = nameField.getValue();
-						        tokenConsumer.appCreate(app, () -> doListApplications(apps, ui));
+						        flyCommands.appCreate(app, () -> doListApplications(apps, ui));
 					        }
 				        }
 			        });
@@ -301,6 +343,13 @@ public class AppsView extends VerticalLayout {
 		}
 	}
 
+	private void showLocations(List<EarthLocation> list, VerticalLayout appsLayout) {
+		ComboBox<EarthLocation> serverCombo = new ComboBox<>();
+		serverCombo.setRenderer(new TextRenderer<>(EarthLocation::getName));
+		serverCombo.setItems(list);
+		appsLayout.add(serverCombo);
+	}
+	
 	// Define printable characters
 	private static final String PRINTABLE_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}|;:,.<>?";
 
