@@ -78,9 +78,6 @@ public class FlyCtlCommands {
 		return false;
 	}
 
-	String loginToken = "";
-	private String tokenFetch;
-
 	public boolean doLogin(String username, String password) throws NoLockException {
 		synchronized (Main.vaadinBoot) {
 			// we lock against other HTTP threads in our own JVM - we are alone messing with fly in our container
@@ -104,8 +101,8 @@ public class FlyCtlCommands {
 				try {
 					tokenStatus = 0;
 					Consumer<String> outputConsumer = (string) -> {
-						logger.info("token fetch {}", string);
-						loginToken = string;
+						logger.info("login token retrieved {}", string);
+						this.setToken(string);
 					};
 					Consumer<String> errorConsumer = (string) -> {
 						logger.error("token {}", string);
@@ -118,7 +115,7 @@ public class FlyCtlCommands {
 
 					Files.delete(configFile);
 					logger.warn("status {} deleted {}", tokenStatus == 0, configFile.toAbsolutePath().toString());
-					this.setToken(loginToken);
+
 					this.setUserName(username);
 					return tokenStatus == 0;
 				} catch (IOException | InterruptedException e) {
@@ -182,10 +179,10 @@ public class FlyCtlCommands {
 	}
 
 	public String getToken() {
-		ui.access(() -> {
-			tokenFetch = (String) ui.getSession().getAttribute("accessToken");
-			logger.warn("GETTING TOKEN {} {} {}", ui.getSession(), tokenFetch, LoggerUtils.whereFrom());
-		});
+		String trace = LoggerUtils.stackTrace();
+		String tokenFetch;
+		tokenFetch = (String) ui.getSession().getAttribute("accessToken");
+		logger.warn("GETTING TOKEN {} {} {}", ui.getSession(), tokenFetch, trace);
 		return tokenFetch;
 	}
 
@@ -198,10 +195,8 @@ public class FlyCtlCommands {
 	}
 
 	public void setToken(String newToken) {
-		ui.access(() -> {
-			logger.warn("SETTING TOKEN {} {} {}", ui.getSession(), newToken, LoggerUtils.whereFrom());
-			ui.getSession().setAttribute("accessToken", newToken);
-		});
+		logger.warn("SETTING TOKEN {} {} {}", ui.getSession(), newToken, LoggerUtils.whereFrom());
+		ui.getSession().setAttribute("accessToken", newToken);
 	}
 
 	public void setUserName(String userName) {
@@ -316,16 +311,17 @@ public class FlyCtlCommands {
 			reason = e.getMessage();
 			appNameStatus = -2;
 		}
-		if (appNameStatus != 0) {
-			throw new NoPermissionException(reason);
-		}
 		logger.warn("getAppNames stop");
 		return appNames;
 	}
 
 	private void removeConfig() throws IOException, NoLockException {
 		configFile = Path.of(System.getProperty("user.home"), ".fly/config.yml");
-		Files.delete(configFile);
+		try {
+			Files.delete(configFile);
+		} catch (IOException e) {
+			// ignore.
+		}
 		if (Files.exists(configFile)) {
 			logger.error("could not delete file");
 			throw new NoLockException("config.yml not free");

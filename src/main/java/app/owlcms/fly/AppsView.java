@@ -62,16 +62,15 @@ public class AppsView extends VerticalLayout {
 		this.setHeightFull();
 		H2 title = new H2("owlcms Cloud Applications - " + tokenConsumer.getUserName());
 		Button logoutButton = new Button("Logout", (e) -> {
-			Notification.show("Logging out", -1, Position.TOP_END);
-			UI.getCurrent().close();
+			tokenConsumer.setToken(null);
+			Notification.show("Logged out", 1000, Position.TOP_END);
+			UI.getCurrent().navigate("");
 		});
 
 		intro = buildIntro();
 		apps = buildAppsPlaceholder();
 		add(new HorizontalLayout(title, logoutButton), intro, apps, execArea);
 		UI ui = UI.getCurrent();
-		ui.push();
-		logger.warn("==================================");
 		doListApplications(apps, ui);
 	}
 
