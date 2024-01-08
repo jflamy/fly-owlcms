@@ -37,7 +37,6 @@ import jakarta.servlet.http.HttpServletRequest;
  * notification.
  */
 @Route("apps")
-// @PreserveOnRefresh
 public class AppsView extends VerticalLayout {
 
 	private static final String LEFT_LABEL_WIDTH = "10em";
@@ -329,7 +328,7 @@ public class AppsView extends VerticalLayout {
 			Div showOwlcmsApp = showApplication(owlcmsApp);
 			apps.add(showOwlcmsApp);
 		} else {
-			owlcmsApp = new App("", AppType.OWLCMS);
+			owlcmsApp = new App("", AppType.OWLCMS, getCurrentRegion(), "stable");
 			Div showOwlcmsApp = showApplication(owlcmsApp);
 			apps.add(showOwlcmsApp);
 		}
@@ -337,10 +336,14 @@ public class AppsView extends VerticalLayout {
 			Div showPublicApp = showApplication(publicApp);
 			apps.add(showPublicApp);
 		} else {
-			publicApp = new App("", AppType.PUBLICRESULTS);
+			publicApp = new App("", AppType.PUBLICRESULTS, getCurrentRegion(), "stable");
 			Div showPublicApp = showApplication(publicApp);
 			apps.add(showPublicApp);
 		}
+	}
+
+	private String getCurrentRegion() {
+		return null;
 	}
 
 	private void showLocations(List<EarthLocation> list, VerticalLayout appsLayout) {

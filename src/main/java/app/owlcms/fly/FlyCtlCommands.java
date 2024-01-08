@@ -195,7 +195,6 @@ public class FlyCtlCommands {
 			}
 		}
 		locations.sort(Comparator.comparing(EarthLocation::getDistance));
-		logger.warn("servers: {}",locations);
 		return locations;
 	}
 
@@ -230,10 +229,13 @@ public class FlyCtlCommands {
 
 		for (String s : appNames) {
 			try {
-				String commandString = "fly image show --app " + s + " --json | jq -r .[].Repository";
+				String commandString = "fly config show --app " + s + " | jq -r '[.primary_region, .build.image]|@tsv'";
 				Consumer<String> outputConsumer = (string) -> {
-					AppType appType = AppType.byImage(string);
-					App app = new App(s, appType);
+					String[] fields = string.split("\t");
+					logger.warn("fields {} {} .", fields[0], fields[1]);
+					String[] imageFields = fields[1].split(":");
+					AppType appType = AppType.byImage(imageFields[0]);
+					App app = new App(s, appType, fields[0], imageFields[1]);
 					app.created = true;
 					apps.put(appType, app);
 					logger.info("adding to map {}", app);
@@ -362,6 +364,7 @@ public class FlyCtlCommands {
 	private void removeConfig() throws IOException, NoLockException {
 		configFile = Path.of(System.getProperty("user.home"), ".fly/config.yml");
 		try {
+			logger.warn("deleting {}", configFile.toAbsolutePath());
 			Files.delete(configFile);
 		} catch (IOException e) {
 			// ignore.
