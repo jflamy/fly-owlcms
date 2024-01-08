@@ -6,7 +6,7 @@
 	<groupId>app.owlcms</groupId>
 	<artifactId>fly-manager</artifactId>
 	<name>owlcms fly.io cloud management</name>
-	<version>1.0-SNAPSHOT</version>
+	<version>1.0.0-beta01</version>
 	<packaging>jar</packaging>
 
 	<properties>
@@ -14,10 +14,7 @@
 		<maven.compiler.target>17</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<failOnMissingWebXml>false</failOnMissingWebXml>
-
 		<vaadin.version>24.3.2</vaadin.version>
-		<drivers.downloader.phase>pre-integration-test</drivers.downloader.phase>
 		<jetty.version>12.0.5</jetty.version>
 	</properties>
 

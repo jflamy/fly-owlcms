@@ -101,8 +101,13 @@ public class FlyCtlCommands {
 				try {
 					tokenStatus = 0;
 					Consumer<String> outputConsumer = (string) -> {
+						try {
+							this.setToken(string);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 						logger.info("login token retrieved {}", string);
-						this.setToken(string);
+						logger.warn("cross-check 1: {}", getToken());
 					};
 					Consumer<String> errorConsumer = (string) -> {
 						logger.error("token {}", string);
@@ -111,10 +116,11 @@ public class FlyCtlCommands {
 					String commandString = "fly auth token";
 					// last argument is null because we don't want to provide a token
 					// since we are fetching one
-					runCommand("getting token", commandString, outputConsumer, errorConsumer, true, null);
+					runCommand("retrieving token from config ", commandString, outputConsumer, errorConsumer, false, null);
 
 					Files.delete(configFile);
 					logger.warn("status {} deleted {}", tokenStatus == 0, configFile.toAbsolutePath().toString());
+					logger.warn("cross-check 2: {}", getToken());
 
 					this.setUserName(username);
 					return tokenStatus == 0;
@@ -179,11 +185,7 @@ public class FlyCtlCommands {
 	}
 
 	public String getToken() {
-		String trace = LoggerUtils.stackTrace();
-		String tokenFetch;
-		tokenFetch = (String) ui.getSession().getAttribute("accessToken");
-		logger.warn("GETTING TOKEN {} {} {}", ui.getSession(), tokenFetch, trace);
-		return tokenFetch;
+		return Main.getAccessToken(ui.getSession());
 	}
 
 	public String getUserName() {
@@ -195,8 +197,7 @@ public class FlyCtlCommands {
 	}
 
 	public void setToken(String newToken) {
-		logger.warn("SETTING TOKEN {} {} {}", ui.getSession(), newToken, LoggerUtils.whereFrom());
-		ui.getSession().setAttribute("accessToken", newToken);
+		Main.setAccessToken(ui.getSession(), newToken);
 	}
 
 	public void setUserName(String userName) {
@@ -336,19 +337,31 @@ public class FlyCtlCommands {
 	}
 
 	private void runCommand(String loggingMessage, String commandString, Consumer<String> outputConsumer,
-	        Consumer<String> errorConsumer, ProcessBuilder builder, Runnable callback)
-	        throws IOException, InterruptedException {
+			Consumer<String> errorConsumer, ProcessBuilder builder, Runnable callback)
+			throws IOException, InterruptedException {
 		ExecutorService executorService = Executors.newFixedThreadPool(2);
 		builder.command("sh", "-c", commandString);
-		logger.warn(loggingMessage, commandString);
+		if (loggingMessage != null && !loggingMessage.isBlank()) {
+			logger.warn(loggingMessage, commandString);
+		}
+
+		// run the command
 		Process process = builder.start();
+
+		// output and errors are buffered to the streams, the gobblers will drain
 		StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), outputConsumer);
 		StreamGobbler streamGobbler2 = new StreamGobbler(process.getErrorStream(), errorConsumer);
 		executorService.submit(streamGobbler);
 		executorService.submit(streamGobbler2);
+
+		// wait for the command to finish
 		process.waitFor();
+
+		// wait for the streams to be drained
 		executorService.shutdown();
 		executorService.awaitTermination(30, TimeUnit.SECONDS);
+
+		// run the callback
 		if (callback != null) {
 			callback.run();
 		}
