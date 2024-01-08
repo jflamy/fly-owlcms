@@ -1,6 +1,5 @@
 package app.owlcms.fly;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -36,6 +35,10 @@ public final class Main {
 	public static String setAccessToken(VaadinSession session, String token) {
 		if (session != null) {
 			checkSessionStatus(session);
+			if (token == null) {
+				accessTokens.remove(session);
+				return null;
+			}
 			return accessTokens.put(session, token);
 		} else {
 			return null;
@@ -45,7 +48,6 @@ public final class Main {
 	private static void checkSessionStatus(VaadinSession session) {
 		session.access(() -> {
 			try {
-				System.err.println("SESSION STATUS CHECK");
 				if (session.getState() != VaadinSessionState.OPEN) {
 					accessTokens.remove(session);
 				}

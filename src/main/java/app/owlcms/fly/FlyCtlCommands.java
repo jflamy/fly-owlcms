@@ -257,6 +257,7 @@ public class FlyCtlCommands {
 	private void doAppCommand(App app, String commandString, Runnable callback, String... envPairs) {
 		UI ui = UI.getCurrent();
 		execArea.setVisible(true);
+		execArea.clear(ui);
 		new Thread(() -> {
 			ProcessBuilder builder = createProcessBuilder(getToken());
 			builder.environment().put("VERSION", "stable");
