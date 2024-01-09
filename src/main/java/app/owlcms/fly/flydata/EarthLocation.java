@@ -62,6 +62,10 @@ public class EarthLocation {
 		return name;
 	}
 
+	public String getFullName() {
+		return code + " - " + name;
+	}
+
 	public void setCode(String code) {
 		this.code = code;
 	}

@@ -1,5 +1,4 @@
 #!/bin/bash -x
-export FLY_API_TOKEN=$(flyctl tokens create deploy)
 
 # create publicresults, don't deploy. set secrets then deploy
 rm fly.toml

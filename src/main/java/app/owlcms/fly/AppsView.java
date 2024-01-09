@@ -1,6 +1,7 @@
 package app.owlcms.fly;
 
 import java.security.SecureRandom;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +20,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.NativeLabel;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -51,10 +53,11 @@ public class AppsView extends VerticalLayout {
 	private FlyCtlCommands flyCommands;
 	private VerticalLayout intro;
 	private VerticalLayout apps;
-	private String ipAddressString;
 	private String regionCode;
+	private String clientIpString;
 
 	public AppsView() {
+		clientIpString = getClientIp();
 		execArea = new ExecArea();
 		execArea.setVisible(false);
 		execArea.setSizeFull();
@@ -62,6 +65,7 @@ public class AppsView extends VerticalLayout {
 		if (flyCommands.getToken() == null) {
 			Login loginOverlay = new Login(flyCommands);
 			loginOverlay.setCallback(() -> {
+				getServerLocations();
 				loginOverlay.setOpened(false);
 				this.removeAll();
 				showApplicationView();
@@ -69,9 +73,20 @@ public class AppsView extends VerticalLayout {
 			loginOverlay.setOpened(true);
 			add(loginOverlay);
 		} else {
+			getServerLocations();
 			showApplicationView();
 		}
 	}
+
+
+
+	private void getServerLocations() {
+		EarthLocation clientIpLocation = GeoLocator.locate(clientIpString);
+		// list is sorted with closest region at the top
+		serverLocations = flyCommands.getServerLocations(clientIpLocation);
+	}
+
+
 
 	private void showApplicationView() {
 		this.setSpacing(false);
@@ -101,10 +116,10 @@ public class AppsView extends VerticalLayout {
 		ConfirmDialog deletionDialog = new ConfirmDialog();
 		deletionDialog.setHeader("Deletion Confirmation Required");
 		deletionDialog.setText(new Html("""
-		        <div>
-		        This will remove the application and make the name available again.
-		        </div>
-		        """));
+				<div>
+				This will remove the application and make the name available again.
+				</div>
+				"""));
 
 		deletionDialog.setConfirmText("Delete");
 		deletionDialog.setConfirmButtonTheme("error primary");
@@ -112,11 +127,25 @@ public class AppsView extends VerticalLayout {
 		deletionDialog.setCancelable(true);
 		deletionDialog.setCancelText("Cancel");
 		deletionDialog.addConfirmListener(e -> {
-			execArea.append("Deleting " + app.name, UI.getCurrent());
-			flyCommands.appDestroy(app, callback);
+
 			if (app.appType == AppType.OWLCMS) {
-				App dbApp = flyCommands.getApps().get(AppType.DB);
-				execArea.append("Deleting associated database " + dbApp.name, UI.getCurrent());
+				Map<AppType, App> apps2 = flyCommands.getApps();
+				App dbApp = apps2.values().stream()
+						.filter(l -> l.name.contentEquals(app.name + "-db"))
+						.findAny()
+						.orElse(null);
+				if (dbApp != null) {
+					execArea.append("Deleting OWLCMS " + app.name, UI.getCurrent());
+					flyCommands.appDestroy(app, null);
+					execArea.append("Deleting associated database " + dbApp.name, UI.getCurrent());
+					flyCommands.appDestroy(dbApp, callback);
+				} else {
+					execArea.append("Deleting OWLCMS" + app.name, UI.getCurrent());
+					flyCommands.appDestroy(app, callback);
+				}
+			} else {
+				execArea.append("Deleting PUBLICRESULTS " + app.name, UI.getCurrent());
+				flyCommands.appDestroy(app, callback);
 			}
 		});
 		deletionDialog.addCancelListener(e -> {
@@ -161,6 +190,7 @@ public class AppsView extends VerticalLayout {
 
 	
 	EarthLocation serverLoc = null;
+	private List<EarthLocation> serverLocations;
 	private void doListApplications(VerticalLayout appsArea, UI ui) {
 		long timeMillis = System.currentTimeMillis();
 		if (timeMillis - lastClick < 100) {
@@ -169,13 +199,13 @@ public class AppsView extends VerticalLayout {
 		}
 		lastClick = timeMillis;
 
-		appsArea.removeAll();
-		execArea.clear(ui);
-		execArea.setVisible(true);
-		execArea.append("Retrieving your application configurations. Please wait.", ui);
-		logger.info("(((()))) {}",LoggerUtils.stackTrace());
-		ui.push();
-		String clientIpString = getClientIp();
+			appsArea.removeAll();
+			execArea.clear(ui);
+			execArea.setVisible(true);
+			execArea.append("Retrieving your application configurations. Please wait.", ui);
+			logger.info("(((()))) {}", LoggerUtils.stackTrace());
+			ui.push();
+			
 		new Thread(() -> {
 			// ui.access(() -> {
 			// this also retrieves the region for the applications if available
@@ -187,24 +217,8 @@ public class AppsView extends VerticalLayout {
 				}
 				break;
 			}
-			EarthLocation clientIpLocation = null;
-			if (ipAddressString == null) {
-				ipAddressString = clientIpString;
-				clientIpLocation = GeoLocator.locate(ipAddressString);
-			}
-
-			// list is sorted with closest region at the top
-			List<EarthLocation> serverLocations = flyCommands.getServerLocations(clientIpLocation);
-			if (regionCode != null) {
-				serverLoc = serverLocations.stream().filter(l -> regionCode.contentEquals(l.getCode())).findAny()
-						.orElse(null);
-			} else {
-				serverLoc = serverLocations.get(0);
-			}
 			
 			ui.access(() -> {
-				showLocations(serverLocations, serverLoc, appsArea, flyCommands);
-				ui.push();
 				showApps(appsList, appsArea);
 				execArea.clear(ui);
 				execArea.setVisible(false);
@@ -226,114 +240,146 @@ public class AppsView extends VerticalLayout {
 		UI ui = UI.getCurrent();
 
 		if (app.created) {
-			Anchor a = new Anchor("https://" + app.name + ".fly.dev", app.name, AnchorTarget.BLANK);
-			a.getStyle().set("text-decoration", "underline");
-			a.setWidth("15em");
-			hl.add(a);
-			Button updateButton = new Button("Update",
-			        e -> flyCommands.appDeploy(app));
-			hl.add(updateButton);
-
-			Button restartButton = new Button("Restart",
-			        e -> flyCommands.appRestart(app));
-			hl.add(restartButton);
-			ConfirmDialog deletionDialog = buildDeletionDialog(app,
-			        () -> doListApplications(apps, ui));
-			Button deleteButton = new Button("Delete");
-			deleteButton.addClickListener(event -> {
-				deletionDialog.open();
-			});
-			hl.add(deleteButton);
-
-			if (app.appType == AppType.PUBLICRESULTS) {
-				HorizontalLayout hl1 = new HorizontalLayout();
-				hl1.setMargin(false);
-				NativeLabel label1 = new NativeLabel("Shared Key");
-				label1.setWidth(LEFT_LABEL_WIDTH);
-				Html sharedKeyExplanation1 = new Html("""
-				        <div style="margin-bottom:0; width: 45em">
-				        	<div>
-				        		<em>YOU NEED TO SET THE SHARED KEY ONCE, when both owlcms and publicresults are present.</em>
-				        	</div>
-				        </div>
-				        """);
-				hl1.add(label1, sharedKeyExplanation1);
-
-				HorizontalLayout hl2 = new HorizontalLayout();
-				NativeLabel label2 = new NativeLabel("Shared Key");
-				label2.setWidth(LEFT_LABEL_WIDTH);
-				TextField sharedKeyField = new TextField();
-				sharedKeyField.setTitle("Shared string between owlcms and public results");
-				sharedKeyField.setPlaceholder("enter a shared string");
-				sharedKeyField.setWidth("15em");
-				sharedKeyField.setValue(generateRandomString(20));
-				Button sharedKeyButton = new Button("Set Shared Key and restart apps",
-				        e -> {
-					        if (sharedKeyField.getValue() == null || sharedKeyField.getValue().isBlank()) {
-						        sharedKeyField.setErrorMessage("The shared key cannot be empty");
-						        sharedKeyField.setInvalid(true);
-					        } else {
-						        flyCommands.doSetSharedKey(sharedKeyField.getValue());
-					        }
-				        });
-				hl2.add(label2, sharedKeyField, sharedKeyButton);
-
-				HorizontalLayout hl3 = new HorizontalLayout();
-				hl3.setMargin(false);
-				NativeLabel label3 = new NativeLabel("");
-				label3.setWidth(LEFT_LABEL_WIDTH);
-				Html sharedKeyExplanation3 = new Html("""
-						<div>
-							The shared key is a value that is exchanged between owlcms and publicresults so they can trust one another. Setting the shared key is only needed once.
-							<ul style="margin:0; width: 45em">
-								<li>
-									<em>IIf your owlcms is running locally at the competition site</em>, you will need to set this
-									value as the shared key on the laptop using the owlcms user interface, in the Preparation - Settings - Connexions section.
-								</li>
-								<li>
-									<em>If you are running both owlcms and publicresults in the cloud</em>, then this button will set the shared key for both.
-									Wait until you have created both owlcms and publicresults.
-								</li>
-							</ul>
-						</div>
-						""");
-				hl3.add(label3,sharedKeyExplanation3);
-
-				hl2.getStyle().set("margin-top", "1em");
-				publicResultsSection.add(hl2,hl3);
-			}
+			showExistingApplication(app, publicResultsSection, hl, ui);
 		} else {
-			TextField nameField = new TextField("");
-			nameField.setValue(app.name);
-			nameField.setPlaceholder("enter application name");
-			nameField.setWidth("15em");
-			hl.add(nameField);
-			nameField.setRequired(true);
-			nameField.setRequiredIndicatorVisible(true);
-
-			Button creationButton = new Button("Create",
-			        e -> {
-				        if (nameField.getValue() == null || nameField.getValue().isBlank()) {
-					        nameField.setErrorMessage("You must provide a value");
-					        nameField.setInvalid(true);
-				        } else {
-					        String siteName = nameField.getValue() + ".fly.net";
-					        boolean ok = flyCommands.createApp(nameField.getValue());
-					        if (!ok) {
-						        nameField.setErrorMessage(siteName + " is already taken.");
-						        nameField.setInvalid(true);
-					        } else {
-						        // this is what we want
-						        nameField.setInvalid(false);
-						        app.name = nameField.getValue();
-						        flyCommands.appCreate(app, () -> doListApplications(apps, ui));
-					        }
-				        }
-			        });
-			hl.add(creationButton);
-			publicResultsSection.add(hl);
+			showNewApplication(app, publicResultsSection, hl, ui);
 		}
 		return publicResultsSection;
+	}
+
+	private void showNewApplication(App app, Div publicResultsSection, HorizontalLayout hl, UI ui) {
+		TextField nameField = new TextField("");
+		nameField.setAllowedCharPattern("[A-Za-z0-9-]");
+		nameField.setValue(app.name);
+		nameField.setPlaceholder("Enter application name");
+		nameField.setWidth("15em");
+		hl.add(nameField);
+		nameField.setRequired(true);
+		nameField.setRequiredIndicatorVisible(true);
+
+		ComboBox<EarthLocation> serverCombo = new ComboBox<>();
+
+		serverCombo.setRenderer(new TextRenderer<>(EarthLocation::getFullName));
+		serverCombo.setItemLabelGenerator(EarthLocation::getFullName);
+		serverCombo.setLabel("Select a server location");
+		serverCombo.setWidth("20em");
+		serverCombo.setItems(serverLocations);
+
+		if (regionCode != null) {
+			serverLoc = serverLocations.stream().filter(l -> regionCode.contentEquals(l.getCode())).findAny()
+					.orElse(null);
+		} else {
+			serverLoc = serverLocations.get(0);
+		}
+		serverCombo.setValue(serverLoc);
+
+		Button creationButton = new Button("Create",
+				e -> {
+					if (nameField.getValue() == null || nameField.getValue().isBlank()) {
+						nameField.setErrorMessage("You must provide a value");
+						nameField.setInvalid(true);
+					} else {
+						String siteName = nameField.getValue() + ".fly.net";
+						boolean ok = flyCommands.createApp(nameField.getValue());
+						if (!ok) {
+							nameField.setErrorMessage(siteName + " is already taken.");
+							nameField.setInvalid(true);
+						} else {
+							// this is what we want
+							nameField.setInvalid(false);
+							app.name = nameField.getValue();
+							app.regionCode = serverCombo.getValue().getCode();
+							flyCommands.appCreate(app, () -> doListApplications(apps, ui));
+						}
+					}
+				});
+		hl.add(serverCombo, creationButton);
+		publicResultsSection.add(hl);
+		hl.setAlignItems(Alignment.BASELINE);
+		publicResultsSection.getStyle().set("margin-top", "-1em");
+	}
+
+	private void showExistingApplication(App app, Div publicResultsSection, HorizontalLayout hl, UI ui) {
+		Anchor a = new Anchor("https://" + app.name + ".fly.dev", app.name, AnchorTarget.BLANK);
+		a.getStyle().set("text-decoration", "underline");
+		HorizontalLayout hlA = new HorizontalLayout(a, new Span("("+ app.regionCode +")"));
+		hlA.setMargin(false);
+		hlA.setPadding(false);
+		hlA.setWidth("15em");
+		hl.add(hlA);
+
+		Button updateButton = new Button("Update",
+		        e -> flyCommands.appDeploy(app));
+		hl.add(updateButton);
+
+		Button restartButton = new Button("Restart",
+		        e -> flyCommands.appRestart(app));
+		hl.add(restartButton);
+		ConfirmDialog deletionDialog = buildDeletionDialog(app,
+		        () -> doListApplications(apps, ui));
+		Button deleteButton = new Button("Delete");
+		deleteButton.addClickListener(event -> {
+			deletionDialog.open();
+		});
+		hl.add(deleteButton);
+
+		if (app.appType == AppType.PUBLICRESULTS) {
+			HorizontalLayout hl1 = new HorizontalLayout();
+			hl1.setMargin(false);
+			NativeLabel label1 = new NativeLabel("Shared Key");
+			label1.setWidth(LEFT_LABEL_WIDTH);
+			Html sharedKeyExplanation1 = new Html("""
+			        <div style="margin-bottom:0; width: 45em">
+			        	<div>
+			        		<em>YOU NEED TO SET THE SHARED KEY ONCE, when both owlcms and publicresults are present.</em>
+			        	</div>
+			        </div>
+			        """);
+			hl1.add(label1, sharedKeyExplanation1);
+
+			HorizontalLayout hl2 = new HorizontalLayout();
+			NativeLabel label2 = new NativeLabel("Shared Key");
+			label2.setWidth(LEFT_LABEL_WIDTH);
+			TextField sharedKeyField = new TextField();
+			sharedKeyField.setTitle("Shared string between owlcms and public results");
+			sharedKeyField.setPlaceholder("enter a shared string");
+			sharedKeyField.setWidth("15em");
+			sharedKeyField.setValue(generateRandomString(20));
+			Button sharedKeyButton = new Button("Set Shared Key and restart apps",
+			        e -> {
+				        if (sharedKeyField.getValue() == null || sharedKeyField.getValue().isBlank()) {
+					        sharedKeyField.setErrorMessage("The shared key cannot be empty");
+					        sharedKeyField.setInvalid(true);
+				        } else {
+					        flyCommands.doSetSharedKey(sharedKeyField.getValue());
+				        }
+			        });
+			hl2.add(label2, sharedKeyField, sharedKeyButton);
+
+			HorizontalLayout hl3 = new HorizontalLayout();
+			hl3.setMargin(false);
+			NativeLabel label3 = new NativeLabel("");
+			label3.setWidth(LEFT_LABEL_WIDTH);
+			Html sharedKeyExplanation3 = new Html("""
+					<div>
+						The shared key is a value that is exchanged between owlcms and publicresults so they can trust one another. Setting the shared key is only needed once.
+						<ul style="margin:0; width: 45em">
+							<li>
+								<em>IIf your owlcms is running locally at the competition site</em>, you will need to set this
+								value as the shared key on the laptop using the owlcms user interface, in the Preparation - Settings - Connexions section.
+							</li>
+							<li>
+								<em>If you are running both owlcms and publicresults in the cloud</em>, then this button will set the shared key for both.
+								Wait until you have created both owlcms and publicresults.
+							</li>
+						</ul>
+					</div>
+					""");
+			hl3.add(label3,sharedKeyExplanation3);
+
+			hl2.getStyle().set("margin-top", "1em");
+			publicResultsSection.add(hl2,hl3);
+		}
 	}
 
 	private void showApps(Map<AppType, App> appMap, VerticalLayout apps) {
@@ -366,32 +412,6 @@ public class AppsView extends VerticalLayout {
 
 	private String getCurrentRegion() {
 		return null;
-	}
-
-	private void showLocations(List<EarthLocation> list, EarthLocation value, VerticalLayout appsLayout, FlyCtlCommands flyCommands2) {
-
-		ComboBox<EarthLocation> serverCombo = new ComboBox<>();
-		serverCombo.setRenderer(new TextRenderer<>(EarthLocation::getName));
-		serverCombo.setItemLabelGenerator(EarthLocation::getName);
-		serverCombo.setLabel("Select a server location");
-		serverCombo.setWidth("20em");
-		serverCombo.setItems(list);
-		serverCombo.setValue(value);
-		Button regionButton = new Button("Set Hosting Server", e -> {
-			// TODO implement region change
-			if (e.isFromClient()) {
-				logger.warn("switching to region {}", serverCombo.getValue().getCode());
-			}
-		});
-		Html hostExplanation = new Html("""
-				<div style="width:26em">
-					<b>Cloud Hosting Location.</b><br/>Pick one close to you. However it is preferable to pick a location in your own country if one is available.
-				</div>
-				""");
-		HorizontalLayout hl = new HorizontalLayout(hostExplanation, serverCombo, regionButton);
-		hl.getStyle().set("margin-bottom","0.5em");
-		hl.setAlignItems(Alignment.END);
-		appsLayout.add(hl);
 	}
 	
 	// Define printable characters

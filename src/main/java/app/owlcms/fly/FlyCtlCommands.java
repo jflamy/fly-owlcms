@@ -36,7 +36,6 @@ public class FlyCtlCommands {
 	private ExecArea execArea;
 
 	private UI ui;
-	private String region;
 
 	public FlyCtlCommands(UI ui, ExecArea execArea) {
 		this.ui = ui;
@@ -275,14 +274,23 @@ public class FlyCtlCommands {
 		return builder;
 	}
 
+	/*
+	 * The ... arguments at the end are pairs of strings.  For example, to override the
+	 * REGION you could add "REGION", "yul" (same to add other environment variables required
+	 * in the commandString)
+	 */
 	private void doAppCommand(App app, String commandString, Runnable callback, String... envPairs) {
 		UI ui = UI.getCurrent();
 		execArea.setVisible(true);
 		execArea.clear(ui);
 		new Thread(() -> {
 			ProcessBuilder builder = createProcessBuilder(getToken());
+
+			// these can be overridden by the env pairs
 			builder.environment().put("VERSION", "stable");
-			builder.environment().put("REGION", getRegion());
+			if (app.regionCode != null && !app.regionCode.isBlank()) {
+				builder.environment().put("REGION", app.regionCode);
+			}
 			builder.environment().put("FLY_APP", app.name);
 
 			if (envPairs.length > 0) {
@@ -350,7 +358,7 @@ public class FlyCtlCommands {
 				appNameStatus = -1;
 				execArea.appendError(string, ui);
 			};
-			runCommand("creating app names {}", commandString, outputConsumer, errorConsumer, true, null);
+			runCommand("getting locations {}", commandString, outputConsumer, errorConsumer, true, null);
 		} catch (Exception e) {
 			e.printStackTrace();
 			reason = e.getMessage();
@@ -409,16 +417,7 @@ public class FlyCtlCommands {
 
 		// run the callback
 		if (callback != null) {
-			callback.run();
+			ui.access(() ->	callback.run());
 		}
 	}
-
-	private String getRegion() {
-		return region;
-	}
-
-	private void setRegion(String region) {
-		this.region = region;
-	}
-
 }
