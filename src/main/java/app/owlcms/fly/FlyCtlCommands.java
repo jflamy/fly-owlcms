@@ -35,9 +35,8 @@ public class FlyCtlCommands {
 	private Path configFile;
 	private ExecArea execArea;
 
-	// FIXME need a way to set or infer region
-	private String region = "yyz";
 	private UI ui;
+	private String region;
 
 	public FlyCtlCommands(UI ui, ExecArea execArea) {
 		this.ui = ui;
@@ -95,7 +94,9 @@ public class FlyCtlCommands {
 						logger.info("login {}", string);
 					};
 					Consumer<String> errorConsumer = (string) -> {
-						logger.error("login error {}", string);
+						if (!string.startsWith("traces")) {
+							logger.error("login error {}", string);
+						}
 					};
 					// don't use existing token if present!
 					runCommand("login", loginString, outputConsumer, errorConsumer, false, null);
@@ -222,8 +223,7 @@ public class FlyCtlCommands {
 		VaadinSession.getCurrent().setAttribute("userName", userName);
 	}
 
-	private synchronized Map<AppType, App> buildAppMap(ProcessBuilder builder,
-	        List<String> appNames) {
+	private synchronized Map<AppType, App> buildAppMap(ProcessBuilder builder, List<String> appNames) {
 		logger.warn("buildAppMap start");
 		Map<AppType, App> apps = new HashMap<>();
 
@@ -420,6 +420,5 @@ public class FlyCtlCommands {
 	private void setRegion(String region) {
 		this.region = region;
 	}
-
 
 }

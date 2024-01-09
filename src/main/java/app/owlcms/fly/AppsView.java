@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vaadin.flow.component.Html;
+import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -16,6 +17,7 @@ import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.AnchorTarget;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
@@ -42,7 +44,7 @@ public class AppsView extends VerticalLayout {
 	private static final String LEFT_LABEL_WIDTH = "10em";
 	private long lastClick = 0;
 
-	@SuppressWarnings("unused")
+	// @SuppressWarnings("unused")
 	final private Logger logger = LoggerFactory.getLogger(AppsView.class);
 
 	private ExecArea execArea;
@@ -50,6 +52,7 @@ public class AppsView extends VerticalLayout {
 	private VerticalLayout intro;
 	private VerticalLayout apps;
 	private String ipAddressString;
+	private String regionCode;
 
 	public AppsView() {
 		execArea = new ExecArea();
@@ -126,8 +129,8 @@ public class AppsView extends VerticalLayout {
 		Html p1 = new Html("""
 		        <div style="width: 60em">
 		        This page creates and manages your owlcms applications on the fly.io cloud.
-				<ul>
-					<li>Scenario 1: <b>cloud owlcms only</b>: create only owlcms, don't create a publicresults</li>
+				<ul style="margin-top: 0">
+					<li>Scenario 1: <b>cloud owlcms only</b>: create only owlcms, no need to create a publicresults</li>
 					<li>Scenario 2: <b>both owlcms and publicresults in the cloud</b>. Create both using this page, then set the shared key.</li>
 					<li>Scenario 3: <b>owlcms at the competition site and cloud publicresults</b>:
 					 create only publicresults, and set the shared key.  You need to copy the shared key to the laptop</li>
@@ -146,9 +149,7 @@ public class AppsView extends VerticalLayout {
 		HttpServletRequest request;
 		VaadinServletRequest current = VaadinServletRequest.getCurrent();
 		request = current.getHttpServletRequest();
-
 		String remoteAddr = "";
-
 		if (request != null) {
 			remoteAddr = request.getHeader("X-FORWARDED-FOR");
 			if (remoteAddr == null || "".equals(remoteAddr)) {
@@ -159,6 +160,7 @@ public class AppsView extends VerticalLayout {
 	}
 
 	
+	EarthLocation serverLoc = null;
 	private void doListApplications(VerticalLayout appsArea, UI ui) {
 		long timeMillis = System.currentTimeMillis();
 		if (timeMillis - lastClick < 100) {
@@ -167,24 +169,41 @@ public class AppsView extends VerticalLayout {
 		}
 		lastClick = timeMillis;
 
+		appsArea.removeAll();
+		execArea.clear(ui);
+		execArea.setVisible(true);
+		execArea.append("Retrieving your application configurations. Please wait.", ui);
+		logger.info("(((()))) {}",LoggerUtils.stackTrace());
+		ui.push();
+		String clientIpString = getClientIp();
 		new Thread(() -> {
-			ui.access(() -> {
-				appsArea.removeAll();
-				execArea.clear(ui);
-				execArea.setVisible(true);
-				execArea.append("Retrieving your application configurations. Please wait.", ui);
-				
-				// this also retrieves the region for the applications if available
-				Map<AppType, App> appsList = flyCommands.getApps();
-				EarthLocation clientIpLocation = null;
-				if (ipAddressString == null) {
-					ipAddressString = getClientIp();
-					clientIpLocation = GeoLocator.locate(ipAddressString);
+			// ui.access(() -> {
+			// this also retrieves the region for the applications if available
+			Map<AppType, App> appsList = flyCommands.getApps();
+			regionCode = null;
+			for (App app : appsList.values()) {
+				if (app.regionCode != null && !app.regionCode.isBlank()) {
+					regionCode = app.regionCode;
 				}
-				
-				// list is sorted with closest region at the top
-				List<EarthLocation> serverLocations = flyCommands.getServerLocations(clientIpLocation);
-				showLocations(serverLocations,appsArea);
+				break;
+			}
+			EarthLocation clientIpLocation = null;
+			if (ipAddressString == null) {
+				ipAddressString = clientIpString;
+				clientIpLocation = GeoLocator.locate(ipAddressString);
+			}
+
+			// list is sorted with closest region at the top
+			List<EarthLocation> serverLocations = flyCommands.getServerLocations(clientIpLocation);
+			if (regionCode != null) {
+				serverLoc = serverLocations.stream().filter(l -> regionCode.contentEquals(l.getCode())).findAny()
+						.orElse(null);
+			} else {
+				serverLoc = serverLocations.get(0);
+			}
+			
+			ui.access(() -> {
+				showLocations(serverLocations, serverLoc, appsArea, flyCommands);
 				ui.push();
 				showApps(appsList, appsArea);
 				execArea.clear(ui);
@@ -192,8 +211,6 @@ public class AppsView extends VerticalLayout {
 			});
 		}).start();
 	}
-
-
 
 	private Div showApplication(App app) {
 		Div publicResultsSection = new Div();
@@ -323,34 +340,58 @@ public class AppsView extends VerticalLayout {
 		App owlcmsApp = appMap.get(AppType.OWLCMS);
 		App publicApp = appMap.get(AppType.PUBLICRESULTS);
 
-		apps.getStyle().set("margin-top", "1em");
+		// apps.getStyle().set("margin-top", "1em");
+		apps.add(new Hr());
+		Div showOwlcmsApp;
 		if (owlcmsApp != null) {
-			Div showOwlcmsApp = showApplication(owlcmsApp);
+			showOwlcmsApp = showApplication(owlcmsApp);
 			apps.add(showOwlcmsApp);
 		} else {
 			owlcmsApp = new App("", AppType.OWLCMS, getCurrentRegion(), "stable");
-			Div showOwlcmsApp = showApplication(owlcmsApp);
+			showOwlcmsApp = showApplication(owlcmsApp);
 			apps.add(showOwlcmsApp);
 		}
+		Div showPublicApp;
+		apps.add(new Hr());
 		if (publicApp != null) {
-			Div showPublicApp = showApplication(publicApp);
+			showPublicApp = showApplication(publicApp);
 			apps.add(showPublicApp);
 		} else {
 			publicApp = new App("", AppType.PUBLICRESULTS, getCurrentRegion(), "stable");
-			Div showPublicApp = showApplication(publicApp);
+			showPublicApp = showApplication(publicApp);
 			apps.add(showPublicApp);
 		}
+		//showPublicApp.getStyle().set("margin-top", "0.5em");
 	}
 
 	private String getCurrentRegion() {
 		return null;
 	}
 
-	private void showLocations(List<EarthLocation> list, VerticalLayout appsLayout) {
+	private void showLocations(List<EarthLocation> list, EarthLocation value, VerticalLayout appsLayout, FlyCtlCommands flyCommands2) {
+
 		ComboBox<EarthLocation> serverCombo = new ComboBox<>();
 		serverCombo.setRenderer(new TextRenderer<>(EarthLocation::getName));
+		serverCombo.setItemLabelGenerator(EarthLocation::getName);
+		serverCombo.setLabel("Select a server location");
+		serverCombo.setWidth("20em");
 		serverCombo.setItems(list);
-		appsLayout.add(serverCombo);
+		serverCombo.setValue(value);
+		Button regionButton = new Button("Set Hosting Server", e -> {
+			// TODO implement region change
+			if (e.isFromClient()) {
+				logger.warn("switching to region {}", serverCombo.getValue().getCode());
+			}
+		});
+		Html hostExplanation = new Html("""
+				<div style="width:26em">
+					<b>Cloud Hosting Location.</b><br/>Pick one close to you. However it is preferable to pick a location in your own country if one is available.
+				</div>
+				""");
+		HorizontalLayout hl = new HorizontalLayout(hostExplanation, serverCombo, regionButton);
+		hl.getStyle().set("margin-bottom","0.5em");
+		hl.setAlignItems(Alignment.END);
+		appsLayout.add(hl);
 	}
 	
 	// Define printable characters

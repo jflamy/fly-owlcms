@@ -5,7 +5,7 @@ public class EarthLocation {
 	public double distance;
 	public double latitude;
 	public double longitude;
-	String code;
+	public String code;
 	String name;
 
 	public EarthLocation(String name, String code, double latitude, double longitude) {
