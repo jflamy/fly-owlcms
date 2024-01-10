@@ -1,7 +1,7 @@
 #!/bin/bash -x
 
 # it is acceptable to only have publicresults
-rm fly.toml
+rm -f fly.toml
 fly secrets set OWLCMS_UPDATEKEY="$SECRET" --app $FLY_APP_OWLCMS
 tmpfile=$(mktemp)
 envsubst < publicresults.toml > $tmpfile

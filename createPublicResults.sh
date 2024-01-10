@@ -1,8 +1,7 @@
 #!/bin/bash -x
 
 # create publicresults, don't deploy. set secrets then deploy
-rm fly.toml
-
+rm -f fly.toml
 tmpfile=$(mktemp)
 envsubst < publicresults.toml > $tmpfile
 
