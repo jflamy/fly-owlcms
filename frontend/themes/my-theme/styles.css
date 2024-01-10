@@ -50,6 +50,7 @@ vaadin-login-overlay-wrapper::part(card) {
     grid-column: 1/1;
     width: 75%;
     margin-top: 1em;
+    max-width: 1000px;
   }
   
   div.map {

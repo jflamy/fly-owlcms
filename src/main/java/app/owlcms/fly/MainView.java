@@ -9,6 +9,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.IFrame;
 import com.vaadin.flow.component.login.LoginOverlay;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -49,7 +50,7 @@ public class MainView extends VerticalLayout {
 		Html publicResultsInfo = new Html(
 		        """
 		                <div>
-		                	<h3>Publish live results to the Internet, for free</h3>
+		                	<h3>Publish LIVE results to anyone the Internet, for free</h3>
 		                	<h5 style="margin-top: 0.2em; margin-bottom: 0.2em">From either on-site or cloud owlcms</h4>
 		                	<ul>
 		                		<li>
@@ -66,23 +67,28 @@ public class MainView extends VerticalLayout {
 
 		Html owlcmsInfo = new Html(
 		        """
-		                <div>
-		                	<h3>Run competitions in the cloud, for free</h3>
-		                	<ul>
-		                		<li>
-		                			If you have good Internet at your club, you can run competitions without having to	install anything.
-		                			You can run a competition on a free cloud server.
-		                		</li>
-		                		<li>
-		                			Use the <b>Login</b> button to create and manage your applications on the fly.io cloud.
-		                		</li>
-		                	</ol>
-		                </div>
-		                """);
+					<div>
+						<h3>Run olympic weightlifting competitions in the cloud, for free, without any specialized equipment</h3>
+						<ul>
+							<li>
+								If you have good Internet at your club, you can run competitions without having to install any software.
+								The minimum is connect a laptop for the announcer.  Then if you wish you can add as many additional displays as you need. You
+								can even referee using phones.
+							</li>
+							<li>
+								Use the <b>Login</b> button to create and manage your applications on the fly.io cloud.
+							</li>
+						</ul>
+					</div>
+		            """);
 
 		Html propagandaInfo = new Html("""
 		        <div>
-		        	<h3>How does this work and why is it free?</h3>
+		        	<h3>How does this work and how can it be free?</h3>
+					<div>
+						The owlcms software is free.  See the 
+						<a style="text-decoration:underline" target="_blank" href="https://github.com/owlcms/owlcms4/blob/public/LICENSE.txt">LICENSE</a>
+					</div>
 		        	<div>
 		        		Fly.io is a cloud provider that has promotional billing for small users. They
 		        		also do not bill if the actual monthly usage is under 5$.
@@ -90,9 +96,7 @@ public class MainView extends VerticalLayout {
 		        		the minimum billable amount, so it is free.
 		        	</div>
 		        	<div>
-		        		This application is a "remote control" application for fly.io. Instead of you
-		        		having to understand how to create and manage
-		        		an application on fly.io, this site runs the commands for you.
+		        		This cloud application dashboard is a "remote control" application for fly.io. This site runs the fly.io application management commands for you.
 		        	</div>
 		        	<div>
 		        		The commercial relationship is directly between you and fly.io. All we do is
@@ -103,41 +107,66 @@ public class MainView extends VerticalLayout {
 		        </div>
 		        """);
 
-		Html antiPropagandaInfo = new Html("""
+		Html localPropagandaInfo = new Html("""
 		        <div>
-		        	<h3>When to use cloud owlcms? (or not)</h3>
+		        	<h3>Running owlcms at the competition site</h3>
 		        	<div>
-		        		If you are hosting a major competition, we recommend that you run it locally
-		        		on a laptop, and that you use your own Wifi router
-		        		instead of relying on the facilities' router. In this way you can run the
-		        		competition even if there is an Internet failure.
-		        		Running on-site also allows using IWF-Compliant MQTT devices that you can
+					    If you are hosting a major competition, we actually recommend that you run it locally
+		        		on a laptop and use your own router to isolate you from an Internet provider outage.
+						See <a style="text-decoration:underline" target="_blank" href="https://owlcms.github.io/owlcms4/#/InstallationOverview?id=stand-alone-laptop-installation">this link</a> for local installation instructions.
+					</div>
+					<div>
+						Then you can use this site to publish the results. See 
+						<a style="text-decoration:underline" target="_blank" href="https://owlcms.github.io/owlcms4/#/PublicResults">this link</a> for instructions.
+					</div>
+					<div>
+		        		Running on-site also allows using devices compliant with IWF TCRR rules that you can either
 		        		build
-		        		(<a style="text-decoration:underline"
+		        		(<a style="text-decoration:underline" target="_blank" 
 		        		href="https://github.com/jflamy/owlcms-firmata/blob/main/README.md">see this
 		        		page</a>)
-		        		or buy from suppliers like <a style="text-decoration:underline"
+		        		or buy from suppliers like <a style="text-decoration:underline" target="_blank" 
 		        		href="https://blue-owl.nemikor.com">blue-owl</a>.
-		        		You would, however, still configure a public results site.
+		        		
 		        	</div>
 		        </div>
 		        """);
 
 		Div mapContainer = new Div();
-		mapContainer.setWidth("1030px");
-		mapContainer.setHeight("695px");
+		mapContainer.setWidth("975px");
+		mapContainer.setHeight("650px");
 		mapContainer.getStyle().set("overflow", "hidden");
 		IFrame map = new IFrame(
 		        "https://www.google.com/maps/d/embed?mid=1cFqfyfoF_RSoM56GewSPDWbuoHihsw4&ehbc=2E312F&z=2");
 		map.setWidth("1000px");
 		map.setHeight("733px");
 		map.getStyle().set("position", "relative");
-		map.getStyle().set("top", "-65px");
+		map.getStyle().set("top", "-70px");
 		map.getStyle().set("left", "-5px");
 		mapContainer.add(map);
-		Div mapDescription = new Div("Users of the latest owlcms version, since Jan 01 2023");
-		mapDescription.getStyle().set("margin-top", "-1em");
+		Html mapDescription = new Html("""
+			<div style="width: 950px">
+				Current users of owlcms. Usage data gathering started Jan 01 2023. Usage of versions prior to v45 
+				and usage without internet access is not represented.
+			</div>
+			""");
+		mapDescription.getStyle().set("margin-top", "0em");
 		Div mapContainerContainer = new Div();
+		Html mapTitle = new Html("""
+			<div style="width: 950px">
+				<h3> Join an International Community</h3>
+				<div>
+				owlcms is used world-wide to run competitions of all sizes, from club meets to continental 
+				championships with multiple platforms. Have a look at the 
+				<a style="text-decoration: underline" target="_blank" href="https://owlcms.github.io/owlcms4/#/index">full documentation</a>
+				</div>
+				<div>Go to to the
+				<a style="text-decoration:underline" target="_blank" href="https://groups.google.com/g/owlcms">owlcms users group forum</a> and subscribe
+				to get updates, exchange with other users, and ask questions.
+				</div>
+			</div>
+			""");
+		mapContainerContainer.add(mapTitle);
 		mapContainerContainer.add(mapContainer);
 		mapContainerContainer.add(mapDescription);
 		mapContainerContainer.setClassName("map");
@@ -155,12 +184,12 @@ public class MainView extends VerticalLayout {
 
 		HorizontalLayout topRow = new HorizontalLayout(new H2("owlcms Cloud Application Dashboard "), login);
 
-		Div page = new Div(owlcmsInfo, publicResultsInfo, mapContainerContainer, propagandaInfo, antiPropagandaInfo);
+		Div page = new Div(owlcmsInfo, publicResultsInfo, mapContainerContainer, localPropagandaInfo, propagandaInfo);
 		page.setClassName("page");
 		owlcmsInfo.setClassName("info");
 		publicResultsInfo.setClassName("info");
 		propagandaInfo.setClassName("info");
-		antiPropagandaInfo.setClassName("info");
+		localPropagandaInfo.setClassName("info");
 
 		view.add(topRow, page);
 	}

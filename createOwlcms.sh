@@ -13,7 +13,8 @@ set +x
 echo
 echo "***** The next step can take a couple minutes.  Please be patient *****"
 set -x
-flyctl postgres attach $FLY_APP --app $FLY_APP_root --yes
+nohup flyctl postgres attach $FLY_APP --app $FLY_APP_root --yes 2>&1 >/dev/null &
+disown %1
 
 # deploy owlcms
 export FLY_APP=$FLY_APP_root

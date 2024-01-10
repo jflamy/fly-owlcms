@@ -24,7 +24,6 @@ import app.owlcms.fly.flydata.App;
 import app.owlcms.fly.flydata.AppType;
 import app.owlcms.fly.flydata.EarthLocation;
 
-
 public class FlyCtlCommands {
 	int appNameStatus;
 	int hostNameStatus;
@@ -34,7 +33,6 @@ public class FlyCtlCommands {
 	private Map<AppType, App> appMap;
 	private Path configFile;
 	private ExecArea execArea;
-
 	private UI ui;
 
 	public FlyCtlCommands(UI ui, ExecArea execArea) {
@@ -122,7 +120,8 @@ public class FlyCtlCommands {
 					String commandString = "fly auth token";
 					// last argument is null because we don't want to provide a token
 					// since we are fetching one
-					runCommand("retrieving token from config ", commandString, outputConsumer, errorConsumer, false, null);
+					runCommand("retrieving token from config ", commandString, outputConsumer, errorConsumer, false,
+					        null);
 
 					Files.delete(configFile);
 					logger.warn("status {} deleted {}", tokenStatus == 0, configFile.toAbsolutePath().toString());
@@ -185,7 +184,7 @@ public class FlyCtlCommands {
 		appMap = buildAppMap(builder, appNames);
 		return appMap;
 	}
-	
+
 	public synchronized List<EarthLocation> getServerLocations(EarthLocation clientLocation) {
 		ProcessBuilder builder = createProcessBuilder(getToken());
 		List<EarthLocation> locations = getLocations(builder, execArea, UI.getCurrent());
@@ -231,13 +230,31 @@ public class FlyCtlCommands {
 				String commandString = "fly config show --app " + s + " | jq -r '[.primary_region, .build.image]|@tsv'";
 				Consumer<String> outputConsumer = (string) -> {
 					String[] fields = string.split("\t");
-					logger.warn("fields {} {} .", fields[0], fields[1]);
-					String[] imageFields = fields[1].split(":");
-					AppType appType = AppType.byImage(imageFields[0]);
-					App app = new App(s, appType, fields[0], imageFields[1]);
-					app.created = true;
-					apps.put(appType, app);
-					logger.info("adding to map {}", app);
+					String image = null;
+					String region = fields[0];
+					if (fields.length > 1) {
+						image = fields[1];
+					}
+					logger.warn("region={} image={}", region, image);
+
+					AppType appType = null;
+					App app = null;
+					if (image != null && !image.isBlank()) {
+						String[] imageFields = image.split(":");
+						String imageRepo = imageFields[0];
+						appType = AppType.byImage(imageRepo);
+						String imageLabel = imageFields[1];
+						app = new App(s, appType, region, imageLabel);
+						app.created = true;
+					} else if (s.endsWith("-db")) {
+						// config does not show the image for the postgres app.
+						appType = AppType.DB;
+						app = new App(s, AppType.DB, region, "");
+					}
+					if (appType != null) {
+						apps.put(appType, app);
+						logger.info("adding to map {}", app);
+					}
 				};
 				Consumer<String> errorConsumer = (string) -> {
 					logger.error("appMap error {}", string);
@@ -275,9 +292,8 @@ public class FlyCtlCommands {
 	}
 
 	/*
-	 * The ... arguments at the end are pairs of strings.  For example, to override the
-	 * REGION you could add "REGION", "yul" (same to add other environment variables required
-	 * in the commandString)
+	 * The ... arguments at the end are pairs of strings. For example, to override the REGION you could add "REGION",
+	 * "yul" (same to add other environment variables required in the commandString)
 	 */
 	private void doAppCommand(App app, String commandString, Runnable callback, String... envPairs) {
 		UI ui = UI.getCurrent();
@@ -343,7 +359,7 @@ public class FlyCtlCommands {
 		}
 		return appNames;
 	}
-	
+
 	private synchronized List<EarthLocation> getLocations(ProcessBuilder builder, ExecArea execArea, UI ui)
 	        throws NoPermissionException {
 		List<EarthLocation> locations = new ArrayList<>();
@@ -352,7 +368,8 @@ public class FlyCtlCommands {
 			String commandString = "flyctl platform regions --json | jq -r '.[] | select(.RequiresPaidPlan == false) | [.Name, .Code, .Latitude, .Longitude] | @tsv'";
 			Consumer<String> outputConsumer = (string) -> {
 				String[] values = string.split("\t");
-				locations.add(new EarthLocation(values[0], values[1], Double.parseDouble(values[2]), Double.parseDouble(values[3])));
+				locations.add(new EarthLocation(values[0], values[1], Double.parseDouble(values[2]),
+				        Double.parseDouble(values[3])));
 			};
 			Consumer<String> errorConsumer = (string) -> {
 				appNameStatus = -1;
@@ -367,8 +384,9 @@ public class FlyCtlCommands {
 		return locations;
 	}
 
-	//flyctl platform regions --json | jq -r '.[] | select(.RequiresPaidPlan == false) | [.Name, .Latitude, .Longitude] | @tsv'
-	
+	// flyctl platform regions --json | jq -r '.[] | select(.RequiresPaidPlan == false) | [.Name, .Latitude, .Longitude]
+	// | @tsv'
+
 	private void removeConfig() throws IOException, NoLockException {
 		configFile = Path.of(System.getProperty("user.home"), ".fly/config.yml");
 		try {
@@ -391,8 +409,8 @@ public class FlyCtlCommands {
 	}
 
 	private void runCommand(String loggingMessage, String commandString, Consumer<String> outputConsumer,
-			Consumer<String> errorConsumer, ProcessBuilder builder, Runnable callback)
-			throws IOException, InterruptedException {
+	        Consumer<String> errorConsumer, ProcessBuilder builder, Runnable callback)
+	        throws IOException, InterruptedException {
 		ExecutorService executorService = Executors.newFixedThreadPool(2);
 		builder.command("sh", "-c", commandString);
 		if (loggingMessage != null && !loggingMessage.isBlank()) {
@@ -413,11 +431,11 @@ public class FlyCtlCommands {
 
 		// wait for the streams to be drained
 		executorService.shutdown();
-		executorService.awaitTermination(30, TimeUnit.SECONDS);
+		executorService.awaitTermination(5, TimeUnit.SECONDS);
 
 		// run the callback
 		if (callback != null) {
-			ui.access(() ->	callback.run());
+			ui.access(() -> callback.run());
 		}
 	}
 }

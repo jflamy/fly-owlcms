@@ -46,7 +46,7 @@ public class AppsView extends VerticalLayout {
 	private static final String LEFT_LABEL_WIDTH = "10em";
 	private long lastClick = 0;
 
-	// @SuppressWarnings("unused")
+	@SuppressWarnings("unused")
 	final private Logger logger = LoggerFactory.getLogger(AppsView.class);
 
 	private ExecArea execArea;
@@ -130,17 +130,19 @@ public class AppsView extends VerticalLayout {
 
 			if (app.appType == AppType.OWLCMS) {
 				Map<AppType, App> apps2 = flyCommands.getApps();
-				App dbApp = apps2.values().stream()
-						.filter(l -> l.name.contentEquals(app.name + "-db"))
-						.findAny()
-						.orElse(null);
+				App dbApp = apps2.get(AppType.DB);
+				// App dbApp = apps2.values().stream()
+				// 		.peek(l -> logger.warn("l.name {} app.name {}",l.name,app.name))
+				// 		.filter(l -> l.name.contentEquals(app.name + "-db"))
+				// 		.findAny()
+				// 		.orElse(null);
 				if (dbApp != null) {
 					execArea.append("Deleting OWLCMS " + app.name, UI.getCurrent());
 					flyCommands.appDestroy(app, null);
-					execArea.append("Deleting associated database " + dbApp.name, UI.getCurrent());
+					execArea.append("Deleting OWLCMS database " + dbApp.name, UI.getCurrent());
 					flyCommands.appDestroy(dbApp, callback);
 				} else {
-					execArea.append("Deleting OWLCMS" + app.name, UI.getCurrent());
+					execArea.append("Deleting OWLCMS - no database " + app.name, UI.getCurrent());
 					flyCommands.appDestroy(app, callback);
 				}
 			} else {
@@ -159,10 +161,10 @@ public class AppsView extends VerticalLayout {
 		        <div style="width: 60em">
 		        This page creates and manages your owlcms applications on the fly.io cloud.
 				<ul style="margin-top: 0">
-					<li>Scenario 1: <b>cloud owlcms only</b>: create only owlcms, no need to create a publicresults</li>
-					<li>Scenario 2: <b>both owlcms and publicresults in the cloud</b>. Create both using this page, then set the shared key.</li>
-					<li>Scenario 3: <b>owlcms at the competition site and cloud publicresults</b>:
-					 create only publicresults, and set the shared key.  You need to copy the shared key to the laptop</li>
+					<li>Scenario 1: <b>owlcms in the cloud</b>: create only owlcms, no need to create a publicresults</li>
+					<li>Scenario 2: <b>owlcms in the cloud, publicresults in the cloud</b>. Create both and set the shared key using this page.</li>
+					<li>Scenario 3: <b>owlcms at the competition site and publicresults in the cloud</b>:
+					 Create only publicresults and set the shared key.  You need to copy the shared key to the laptop</li>
 				</ul>
 		        </div>
 		        """);
@@ -203,7 +205,6 @@ public class AppsView extends VerticalLayout {
 			execArea.clear(ui);
 			execArea.setVisible(true);
 			execArea.append("Retrieving your application configurations. Please wait.", ui);
-			logger.info("(((()))) {}", LoggerUtils.stackTrace());
 			ui.push();
 			
 		new Thread(() -> {
