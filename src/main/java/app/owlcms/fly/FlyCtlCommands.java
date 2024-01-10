@@ -178,7 +178,6 @@ public class FlyCtlCommands {
 	}
 
 	public synchronized Map<AppType, App> getApps() throws NoPermissionException {
-		logger.warn("getApps");
 		ProcessBuilder builder = createProcessBuilder(getToken());
 		List<String> appNames = getAppNames(builder, execArea, UI.getCurrent());
 		appMap = buildAppMap(builder, appNames);
@@ -222,35 +221,21 @@ public class FlyCtlCommands {
 	}
 
 	private synchronized Map<AppType, App> buildAppMap(ProcessBuilder builder, List<String> appNames) {
-		logger.warn("buildAppMap start");
 		Map<AppType, App> apps = new HashMap<>();
-
 		for (String s : appNames) {
 			try {
-				String commandString = "fly config show --app " + s + " | jq -r '[.primary_region, .build.image]|@tsv'";
+				String commandString = 
+					"fly machines list --app %s --json | jq -r '.[] | [.region, .image_ref.repository, .image_ref.tag] | @tsv'"
+					.formatted(s);
 				Consumer<String> outputConsumer = (string) -> {
 					String[] fields = string.split("\t");
-					String image = null;
 					String region = fields[0];
-					if (fields.length > 1) {
-						image = fields[1];
-					}
-					logger.warn("region={} image={}", region, image);
-
-					AppType appType = null;
-					App app = null;
-					if (image != null && !image.isBlank()) {
-						String[] imageFields = image.split(":");
-						String imageRepo = imageFields[0];
-						appType = AppType.byImage(imageRepo);
-						String imageLabel = imageFields[1];
-						app = new App(s, appType, region, imageLabel);
-						app.created = true;
-					} else if (s.endsWith("-db")) {
-						// config does not show the image for the postgres app.
-						appType = AppType.DB;
-						app = new App(s, AppType.DB, region, "");
-					}
+					String image = fields[1];
+					String tag = fields[2];
+					logger.debug("region={} image={} tag={}", region, image, tag);
+					AppType appType = AppType.byImage(image);
+					App app = new App(s, appType, region, tag);
+					app.created = true;
 					if (appType != null) {
 						apps.put(appType, app);
 						logger.info("adding to map {}", app);
@@ -259,12 +244,11 @@ public class FlyCtlCommands {
 				Consumer<String> errorConsumer = (string) -> {
 					logger.error("appMap error {}", string);
 				};
-				runCommand("building app map {}", commandString, outputConsumer, errorConsumer, true, null);
+				runCommand("retrieving image {}", commandString, outputConsumer, errorConsumer, true, null);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
-		logger.warn("buildAppMap stop");
 		return apps;
 	}
 
@@ -351,7 +335,7 @@ public class FlyCtlCommands {
 				execArea.appendError(string, ui);
 				reason = string;
 			};
-			runCommand("creating app names {}", commandString, outputConsumer, errorConsumer, true, null);
+			runCommand("retrieving app names {}", commandString, outputConsumer, errorConsumer, true, null);
 		} catch (Exception e) {
 			e.printStackTrace();
 			reason = e.getMessage();
