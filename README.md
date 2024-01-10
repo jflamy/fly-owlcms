@@ -1,7 +1,7 @@
-# owlcms - fly.io cloud application deployment and management
+# owlcms - fly.io cloud application management
 
-[fly.io](https://fly.io) is free cloud deployment platform for [owlcms](https://github.com/jflamy/owlcms4) .  
-The service is free because the monthly fees are well below the minimal charging fees of 5 US$ and no bill is emitted.
+[fly.io](https://fly.io) is a cloud deployment platform that is a very good match for [owlcms](https://github.com/jflamy/owlcms4) .  
+Running on fly.io is free because the monthly fees are well below the minimal charging fees of 5 US$ and no bill is emitted.
 
 This application automates the owlcms deployment process so that it is easy to
 
@@ -12,9 +12,13 @@ This application automates the owlcms deployment process so that it is easy to
 
 
 
-#### **Release Candidate Version 1.0.0-rc01**
+#### Release Candidate Version 1.0.0-rc02
 
-This version is an early release. It appears to be fully functional. The application is deployed in the cloud at https://owlcms-cloud.fly.dev  Standard disclaimers apply: there is no warranty, expressed or implied, as to the fitness of the application for any purpose.  Do your own tests, and use if satisfied.
+This version is an early release. The application is deployed in the cloud at https://owlcms-cloud.fly.dev  Standard disclaimers apply: there is no warranty, expressed or implied, as to the fitness of the application for any purpose.  Do your own tests, and use the program if satisfied.
+
+Fixes
+
+- (rc02) Geographic data was not loading properly.
 
 Known issues:
 
