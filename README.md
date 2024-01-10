@@ -12,10 +12,10 @@ This application automates the owlcms deployment process so that it is easy to
 
 
 
-#### **Version 1.0.0-beta03**
+#### **Release Candidate Version 1.0.0-rc01**
 
-This version is an early release. It appears to be fully functional. The application is deployed in the cloud at https://owlcms-cloud.fly.dev  Standard disclaimers apply: there are no warranty, expressed or implied, as to the fitness of the application for any purpose.  Do your own tests, and use if satisfied.
+This version is an early release. It appears to be fully functional. The application is deployed in the cloud at https://owlcms-cloud.fly.dev  Standard disclaimers apply: there is no warranty, expressed or implied, as to the fitness of the application for any purpose.  Do your own tests, and use if satisfied.
 
 Known issues:
 
-- when creating an owlcms application, the link from the application to the database takes 2 minutes. The issue has been reported to fly.io
+- none.
