@@ -54,7 +54,7 @@ public class MainView extends VerticalLayout {
 		                	<h5 style="margin-top: 0.2em; margin-bottom: 0.2em">From either on-site or cloud owlcms</h4>
 		                	<ul>
 		                		<li>
-		                			Use this site to create a free cloud server that will make your competition results available LIVE, with no delays.
+		                			<a href='./apps'><span style="border:solid; border-width: 1px; padding: 2px;">Login</span></a> and use this site to create a free cloud server that will make your competition results available LIVE, with no delays.
 		                			To anyone in the world with internet access, on a phone, tablet, or laptop.
 		                		</li>
 		                		<li>
@@ -72,11 +72,11 @@ public class MainView extends VerticalLayout {
 						<ul>
 							<li>
 								If you have good Internet at your club, you can run competitions without having to install any software.
-								The minimum is connect a laptop for the announcer.  Then if you wish you can add as many additional displays as you need. You
-								can even referee using phones.
+								The minimum is connect a laptop for the announcer.  Then, if you wish, you can add as many additional displays as you need. You
+								can referee manually or using <a style="text-decoration:underline" href="https://owlcms.github.io/owlcms4/#/Refereeing">phones</a>.
 							</li>
 							<li>
-								Use the <b>Login</b> button to create and manage your applications on the fly.io cloud.
+								<a href='./apps'><span style="border:solid; border-width: 1px; padding: 2px;">Login</span></a> to create and manage your free applications on the <a style="text-decoration:underline" href="https://fly.io" target="_blank">fly.io</a> cloud.
 							</li>
 						</ul>
 					</div>
@@ -86,24 +86,14 @@ public class MainView extends VerticalLayout {
 		        <div>
 		        	<h3>How does this work and how can it be free?</h3>
 					<div>
-						The owlcms software is free.  See the 
-						<a style="text-decoration:underline" target="_blank" href="https://github.com/owlcms/owlcms4/blob/public/LICENSE.txt">LICENSE</a>
+						The owlcms software itsef is open source and so it is free.  See the 
+						<a style="text-decoration:underline" target="_blank" href="https://github.com/owlcms/owlcms4/blob/public/LICENSE.txt">LICENSE</a> 
 					</div>
-		        	<div>
-		        		Fly.io is a cloud provider that has promotional billing for small users. They
-		        		also do not bill if the actual monthly usage is under 5$.
-		        		Running owlcms, its database, and the public results server costs less than
-		        		the minimum billable amount, so it is free.
-		        	</div>
-		        	<div>
-		        		This cloud application dashboard is a "remote control" application for fly.io. This site runs the fly.io application management commands for you.
-		        	</div>
-		        	<div>
-		        		The commercial relationship is directly between you and fly.io. All we do is
-		        		"type the commands" on your behalf. We do not
-		        		get a percentage of your non-existent fees, and do not get any other
-		        		advantage.
-		        	</div>
+					<div>
+						You create a small user account with a cloud provider called <a style="text-decoration:underline" href="https://fly.io" target="_blank">fly.io</a>, and this application does the work of setting up
+						your owlcms applications there.  Each account has a free provision each month, and owlcms uses about half of that, so
+						it is free.
+					</div>
 		        </div>
 		        """);
 
@@ -146,8 +136,7 @@ public class MainView extends VerticalLayout {
 		mapContainer.add(map);
 		Html mapDescription = new Html("""
 			<div style="width: 950px">
-				Current users of owlcms. Usage data gathering started Jan 01 2023. Usage of versions prior to v45 
-				and usage without internet access is not represented.
+				Current users of owlcms. Gathering of usage data started Jan 01 2023.
 			</div>
 			""");
 		mapDescription.getStyle().set("margin-top", "0em");
@@ -164,6 +153,7 @@ public class MainView extends VerticalLayout {
 				<a style="text-decoration:underline" target="_blank" href="https://groups.google.com/g/owlcms">owlcms users group forum</a> and subscribe
 				to get updates, exchange with other users, and ask questions.
 				</div>
+				<br/>
 			</div>
 			""");
 		mapContainerContainer.add(mapTitle);

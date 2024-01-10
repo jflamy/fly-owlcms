@@ -164,9 +164,9 @@ public class AppsView extends VerticalLayout {
 		        This page creates and manages your owlcms applications on the fly.io cloud.
 				<ul style="margin-top: 0">
 					<li>Scenario 1: <b>owlcms in the cloud</b>: create only owlcms, no need to create a publicresults</li>
-					<li>Scenario 2: <b>owlcms in the cloud, publicresults in the cloud</b>. Create both and set the shared key using this page.</li>
+					<li>Scenario 2: <b>owlcms in the cloud, publicresults in the cloud</b>. Create both applications and then set the shared key using this page.</li>
 					<li>Scenario 3: <b>owlcms at the competition site and publicresults in the cloud</b>:
-					 Create only publicresults and set the shared key.  You need to copy the shared key to the laptop</li>
+					 Create only publicresults and then set the shared key.  You need to copy the shared key to the laptop</li>
 				</ul>
 		        </div>
 		        """);
