@@ -37,5 +37,6 @@ COPY --from=stage1 /app/target/fly-manager.jar /app
 COPY --from=stage1 /app/*.sh /app/
 COPY --from=stage1 /app/*.toml /app/
 COPY --from=stage1 /usr/bin/envsubst /usr/bin
+COPY --from=stage1 /app/src/main/resources/GeoLite2/GeoLite2-City.mmdb /app
 EXPOSE 8080
 ENTRYPOINT ["/opt/java/openjdk/bin/java", "-jar", "fly-manager.jar", "-Xmx384m"]

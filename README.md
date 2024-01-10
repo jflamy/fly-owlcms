@@ -12,13 +12,13 @@ This application automates the owlcms deployment process so that it is easy to
 
 
 
-#### Release Candidate Version 1.0.0-rc02
+#### Release Candidate Version 1.0.0-rc03
 
 This version is an early release. The application is deployed in the cloud at https://owlcms-cloud.fly.dev  Standard disclaimers apply: there is no warranty, expressed or implied, as to the fitness of the application for any purpose.  Do your own tests, and use the program if satisfied.
 
-Fixes
+Fixes/changes
 
-- (rc02) Geographic data was not loading properly.
+- (rc03) More robust method to retrieve the docker image running on the fly.io machine
 
 Known issues:
 

@@ -187,6 +187,9 @@ public class AppsView extends VerticalLayout {
 			remoteAddr = request.getHeader("X-FORWARDED-FOR");
 			if (remoteAddr == null || "".equals(remoteAddr)) {
 				remoteAddr = request.getRemoteAddr();
+			} else if (remoteAddr.contains(", ")) {
+				String[] remoteAddresses = remoteAddr.split(", ");
+				remoteAddr = remoteAddresses[0];
 			}
 		}
 		return remoteAddr;
