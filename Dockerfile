@@ -4,6 +4,8 @@
 FROM maven:3.8.8-eclipse-temurin-17 as stage1
 # speed up Maven JVM a bit
 ENV MAVEN_OPTS="-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && apt install -y gettext-base && rm -rf /var/lib/apt/lists/*
 # set working directory
 WORKDIR /app
 # copy just pom.xml
@@ -14,13 +16,13 @@ RUN mvn dependency:go-offline package -P production
 COPY ./src ./src
 COPY ./frontend ./frontend
 COPY ./*.sh ./
+COPY ./*.toml ./
 # compile the source code and package it in a jar file
 RUN mvn clean package -P production -Dmaven.test.skip=true
 
 FROM eclipse-temurin:17-jdk-jammy
 WORKDIR /app
 ENV FLYCTL_INSTALL /app/fly
-
 # put required utilities in /app/fly/bin
 RUN <<EOF
 wget -O jq https://github.com/jqlang/jq/releases/download/jq-1.6/jq-linux64
@@ -33,5 +35,7 @@ EOF
 
 COPY --from=stage1 /app/target/fly-manager.jar /app
 COPY --from=stage1 /app/*.sh /app/
+COPY --from=stage1 /app/*.toml /app/
+COPY --from=stage1 /usr/bin/envsubst /usr/bin
 EXPOSE 8080
-ENTRYPOINT ["/opt/java/openjdk/bin/java", "-jar", "fly-manager.jar"]
+ENTRYPOINT ["/opt/java/openjdk/bin/java", "-jar", "fly-manager.jar", "-Xmx384m"]
