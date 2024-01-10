@@ -8,6 +8,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.maxmind.geoip2.exception.AddressNotFoundException;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.component.UI;
@@ -81,7 +82,8 @@ public class AppsView extends VerticalLayout {
 
 
 	private void getServerLocations() {
-		EarthLocation clientIpLocation = GeoLocator.locate(clientIpString);
+		EarthLocation clientIpLocation;
+		clientIpLocation = GeoLocator.locate(clientIpString);
 		// list is sorted with closest region at the top
 		serverLocations = flyCommands.getServerLocations(clientIpLocation);
 	}
