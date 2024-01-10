@@ -32,7 +32,6 @@ public class GeoLocator {
 
 			} else {
 				ds = GeoLocator.class.getResourceAsStream("/GeoLite2/GeoLite2-City.mmdb");
-
 				setGeoDatabaseReader(new DatabaseReader.Builder(ds).build());
 			}
 		} catch (Throwable t) {
