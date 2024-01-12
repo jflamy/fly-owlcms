@@ -3,6 +3,7 @@
 # it is acceptable to only have publicresults
 rm -f fly.toml
 fly secrets set OWLCMS_UPDATEKEY="$SECRET" --app $FLY_APP_OWLCMS
+fly secrets set OWLCMS_REMOTE="https://$FLY_APP_PUBLICRESULTS.fly.dev"
 tmpfile=$(mktemp)
 envsubst < publicresults.toml > $tmpfile
 flyctl deploy $OPTIONS --config $tmpfile
