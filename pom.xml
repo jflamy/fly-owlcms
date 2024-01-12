@@ -6,7 +6,7 @@
 	<groupId>app.owlcms</groupId>
 	<artifactId>fly-manager</artifactId>
 	<name>owlcms fly.io cloud management</name>
-	<version>1.0.0-beta01</version>
+	<version>1.0.0</version>
 	<packaging>jar</packaging>
 
 	<properties>
