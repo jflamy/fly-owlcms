@@ -254,11 +254,11 @@ public class AppsView extends VerticalLayout {
 	}
 
 	private void showNewApplication(App app, Div publicResultsSection, HorizontalLayout hl, UI ui) {
-		TextField nameField = new TextField("");
+		TextField nameField = new TextField("Application Name (without .fly.dev)");
 		nameField.setAllowedCharPattern("[A-Za-z0-9-]");
 		nameField.setValue(app.name);
-		nameField.setPlaceholder("Enter application name");
-		nameField.setWidth("15em");
+		nameField.setPlaceholder("Letters, numbers and hyphens");
+		nameField.setWidth("20em");
 		hl.add(nameField);
 		nameField.setRequired(true);
 		nameField.setRequiredIndicatorVisible(true);
@@ -281,19 +281,20 @@ public class AppsView extends VerticalLayout {
 
 		Button creationButton = new Button("Create",
 				e -> {
-					if (nameField.getValue() == null || nameField.getValue().isBlank()) {
+					String value = nameField.getValue();
+					if (value == null || value.isBlank()) {
 						nameField.setErrorMessage("You must provide a value");
 						nameField.setInvalid(true);
 					} else {
-						String siteName = nameField.getValue() + ".fly.net";
-						boolean ok = flyCommands.createApp(nameField.getValue());
+						String siteName = value.toLowerCase() + ".fly.dev";
+						boolean ok = flyCommands.createApp(value.toLowerCase());
 						if (!ok) {
 							nameField.setErrorMessage(siteName + " is already taken.");
 							nameField.setInvalid(true);
 						} else {
 							// this is what we want
 							nameField.setInvalid(false);
-							app.name = nameField.getValue();
+							app.name = value.toLowerCase();
 							app.regionCode = serverCombo.getValue().getCode();
 							flyCommands.appCreate(app, () -> doListApplications(apps, ui));
 						}
@@ -306,12 +307,12 @@ public class AppsView extends VerticalLayout {
 	}
 
 	private void showExistingApplication(App app, Div publicResultsSection, HorizontalLayout hl, UI ui) {
-		Anchor a = new Anchor("https://" + app.name + ".fly.dev", app.name, AnchorTarget.BLANK);
+		Anchor a = new Anchor("https://" + app.name + ".fly.dev", app.name+".fly.dev", AnchorTarget.BLANK);
 		a.getStyle().set("text-decoration", "underline");
 		HorizontalLayout hlA = new HorizontalLayout(a, new Span("("+ app.regionCode +")"));
 		hlA.setMargin(false);
 		hlA.setPadding(false);
-		hlA.setWidth("15em");
+		hlA.setWidth("20em");
 		hl.add(hlA);
 
 		Button updateButton = new Button("Update",

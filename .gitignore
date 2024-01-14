@@ -26,3 +26,4 @@ frontend/generated/
 webpack.generated.js
 /fly-manager.jar
 fly.toml
+logs/owlcms.log
