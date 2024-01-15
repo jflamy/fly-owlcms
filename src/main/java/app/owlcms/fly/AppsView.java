@@ -1,16 +1,13 @@
 package app.owlcms.fly;
 
 import java.security.SecureRandom;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.maxmind.geoip2.exception.AddressNotFoundException;
 import com.vaadin.flow.component.Html;
-import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -369,15 +366,19 @@ public class AppsView extends VerticalLayout {
 			label3.setWidth(LEFT_LABEL_WIDTH);
 			Html sharedKeyExplanation3 = new Html("""
 					<div>
-						The shared key is a value that is exchanged between owlcms and publicresults so they can trust one another. Setting the shared key is only needed once.
+						The shared key is a value that is exchanged between owlcms and publicresults so they can trust one another. 
+						Setting the shared key is only needed once, when you first install publicresults.
 						<ul style="margin:0; width: 45em">
 							<li>
-								<em>IIf your owlcms is running locally at the competition site</em>, you will need to set this
+								<em>If your owlcms is running locally at the competition site</em>, you will need to set this
 								value as the shared key on the laptop using the owlcms user interface, in the Preparation - Settings - Connexions section.
 							</li>
 							<li>
 								<em>If you are running both owlcms and publicresults in the cloud</em>, then this button will set the shared key for both.
 								Wait until you have created both owlcms and publicresults.
+							</li>
+							<li>
+			                    You do <em>not</em> need to set the key again after updating or restarting the applications.
 							</li>
 						</ul>
 					</div>
