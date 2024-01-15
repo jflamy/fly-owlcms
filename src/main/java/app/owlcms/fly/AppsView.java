@@ -367,7 +367,7 @@ public class AppsView extends VerticalLayout {
 			Html sharedKeyExplanation3 = new Html("""
 					<div>
 						The shared key is a value that is exchanged between owlcms and publicresults so they can trust one another. 
-						Setting the shared key is only needed once, when you first install publicresults.
+						<br />Setting the shared key is only needed once, when you first connect the programs together.
 						<ul style="margin:0; width: 45em">
 							<li>
 								<em>If your owlcms is running locally at the competition site</em>, you will need to set this
