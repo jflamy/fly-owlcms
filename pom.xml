@@ -14,7 +14,7 @@
 		<maven.compiler.target>17</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<vaadin.version>24.3.2</vaadin.version>
+		<vaadin.version>24.3.3</vaadin.version>
 		<jetty.version>12.0.5</jetty.version>
 	</properties>
 
@@ -111,7 +111,14 @@
 			<artifactId>geoip2</artifactId>
 			<version>4.2.0</version>
 		</dependency>
-		
+
+		<!-- version checking -->
+		<dependency>
+			<groupId>org.apache.maven</groupId>
+			<artifactId>maven-artifact</artifactId>
+			<version>3.6.3</version>
+		</dependency>
+
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
@@ -149,7 +156,7 @@
 					<executable>java</executable>
 					<arguments>
 						<argument>-classpath</argument>
-						<classpath/>
+						<classpath />
 						<argument>-Dserver.port=8084</argument>
 						<argument>-Dvaadin.frontend.hotdeploy=false</argument>
 						<argument>-XX:+AllowEnhancedClassRedefinition</argument>

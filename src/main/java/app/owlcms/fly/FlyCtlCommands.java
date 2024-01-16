@@ -44,9 +44,10 @@ public class FlyCtlCommands {
 		doAppCommand(app, app.appType.script, callback);
 	}
 
-	public void appDeploy(App app) {
-		doAppCommand(app, "fly deploy --app " + app.name + " --image " + app.appType.image + ":stable" + " --ha=false",
-		        null);
+	public void appDeploy(App app, Runnable callback) {
+		doAppCommand(app, 
+			"fly deploy --app " + app.name + " --image " + app.appType.image + ":" + app.getReferenceVersion() + " --ha=false",
+		    callback);
 	}
 
 	public void appDestroy(App app, Runnable callback) {

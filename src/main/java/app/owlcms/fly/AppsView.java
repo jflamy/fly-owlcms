@@ -7,9 +7,12 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.html.Anchor;
@@ -114,11 +117,22 @@ public class AppsView extends VerticalLayout {
 	private ConfirmDialog buildDeletionDialog(App app, Runnable callback) {
 		ConfirmDialog deletionDialog = new ConfirmDialog();
 		deletionDialog.setHeader("Deletion Confirmation Required");
-		deletionDialog.setText(new Html("""
-				<div>
-				This will remove the application and make the name available again.
-				</div>
-				"""));
+		if (app.appType == AppType.OWLCMS) {
+			deletionDialog.setText(new Html("""
+					<div>
+					   This will remove the application and make the name available again.
+					   <br />
+					   NOTE: the database will also be deleted; make sure you have
+					   exported the database if you need to keep the information.
+					</div>
+					"""));
+		} else {
+			deletionDialog.setText(new Html("""
+					<div>
+					   This will remove the application and make the name available again.
+					</div>
+					"""));
+		}
 
 		deletionDialog.setConfirmText("Delete");
 		deletionDialog.setConfirmButtonTheme("error primary");
@@ -306,14 +320,26 @@ public class AppsView extends VerticalLayout {
 	private void showExistingApplication(App app, Div publicResultsSection, HorizontalLayout hl, UI ui) {
 		Anchor a = new Anchor("https://" + app.name + ".fly.dev", app.name+".fly.dev", AnchorTarget.BLANK);
 		a.getStyle().set("text-decoration", "underline");
-		HorizontalLayout hlA = new HorizontalLayout(a, new Span("("+ app.regionCode +")"));
-		hlA.setMargin(false);
-		hlA.setPadding(false);
-		hlA.setWidth("20em");
-		hl.add(hlA);
+		String currentVersion = app.getCurrentVersion();
+		currentVersion = currentVersion + (currentVersion.matches("^[0-9].*$") ? "" : " (version number unknown)");
+		boolean updateRequired = app.isUpdateRequired();
+		VerticalLayout versionInfo = new VerticalLayout(a, new Html("""
+			<div>your version: %s<br />latest version: %s<span style="color:red">%s</span><br/> region: %s</div>""".formatted(
+				currentVersion,
+				app.getReferenceVersion(),
+				updateRequired ? " Please Update" : "",
+				app.regionCode)));
+		versionInfo.setMargin(false);
+		versionInfo.setPadding(false);
+		versionInfo.setSpacing(false);
+		versionInfo.setWidth("20em");
+		hl.add(versionInfo);
 
 		Button updateButton = new Button("Update",
-		        e -> flyCommands.appDeploy(app));
+		        e -> flyCommands.appDeploy(app,() -> doListApplications(apps, ui)));
+		if (updateRequired) {
+			updateButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+		}
 		hl.add(updateButton);
 
 		Button restartButton = new Button("Restart",
@@ -328,66 +354,72 @@ public class AppsView extends VerticalLayout {
 		hl.add(deleteButton);
 
 		if (app.appType == AppType.PUBLICRESULTS) {
-			HorizontalLayout hl1 = new HorizontalLayout();
-			hl1.setMargin(false);
-			NativeLabel label1 = new NativeLabel("Shared Key");
-			label1.setWidth(LEFT_LABEL_WIDTH);
-			Html sharedKeyExplanation1 = new Html("""
-			        <div style="margin-bottom:0; width: 45em">
-			        	<div>
-			        		<em>YOU NEED TO SET THE SHARED KEY ONCE, when both owlcms and publicresults are present.</em>
-			        	</div>
-			        </div>
-			        """);
-			hl1.add(label1, sharedKeyExplanation1);
-
-			HorizontalLayout hl2 = new HorizontalLayout();
-			NativeLabel label2 = new NativeLabel("Shared Key");
-			label2.setWidth(LEFT_LABEL_WIDTH);
-			TextField sharedKeyField = new TextField();
-			sharedKeyField.setTitle("Shared string between owlcms and public results");
-			sharedKeyField.setPlaceholder("enter a shared string");
-			sharedKeyField.setWidth("15em");
-			sharedKeyField.setValue(generateRandomString(20));
-			Button sharedKeyButton = new Button("Set Shared Key and restart apps",
-			        e -> {
-				        if (sharedKeyField.getValue() == null || sharedKeyField.getValue().isBlank()) {
-					        sharedKeyField.setErrorMessage("The shared key cannot be empty");
-					        sharedKeyField.setInvalid(true);
-				        } else {
-					        flyCommands.doSetSharedKey(sharedKeyField.getValue());
-				        }
-			        });
-			hl2.add(label2, sharedKeyField, sharedKeyButton);
-
-			HorizontalLayout hl3 = new HorizontalLayout();
-			hl3.setMargin(false);
-			NativeLabel label3 = new NativeLabel("");
-			label3.setWidth(LEFT_LABEL_WIDTH);
-			Html sharedKeyExplanation3 = new Html("""
-					<div>
-						The shared key is a value that is exchanged between owlcms and publicresults so they can trust one another. 
-						<br />Setting the shared key is only needed once, when you first connect the programs together.
-						<ul style="margin:0; width: 45em">
-							<li>
-								<em>If your owlcms is running locally at the competition site</em>, you will need to set this
-								value as the shared key on the laptop using the owlcms user interface, in the Preparation - Settings - Connexions section.
-							</li>
-							<li>
-								<em>If you are running both owlcms and publicresults in the cloud</em>, then this button will set the shared key for both.
-								Wait until you have created both owlcms and publicresults.
-							</li>
-							<li>
-			                    You do <em>not</em> need to set the key again after updating or restarting the applications.
-							</li>
-						</ul>
-					</div>
-					""");
-			hl3.add(label3,sharedKeyExplanation3);
-
-			hl2.getStyle().set("margin-top", "1em");
-			publicResultsSection.add(hl2,hl3);
+			showSharedKey(publicResultsSection);
 		}
+	}
+
+
+
+	private void showSharedKey(Div publicResultsSection) {
+		HorizontalLayout hl1 = new HorizontalLayout();
+		hl1.setMargin(false);
+		NativeLabel label1 = new NativeLabel("Shared Key");
+		label1.setWidth(LEFT_LABEL_WIDTH);
+		Html sharedKeyExplanation1 = new Html("""
+		        <div style="margin-bottom:0; width: 45em">
+		        	<div>
+		        		<em>YOU NEED TO SET THE SHARED KEY ONCE, when both owlcms and publicresults are present.</em>
+		        	</div>
+		        </div>
+		        """);
+		hl1.add(label1, sharedKeyExplanation1);
+
+		HorizontalLayout hl2 = new HorizontalLayout();
+		NativeLabel label2 = new NativeLabel("Shared Key");
+		label2.setWidth(LEFT_LABEL_WIDTH);
+		TextField sharedKeyField = new TextField();
+		sharedKeyField.setTitle("Shared string between owlcms and public results");
+		sharedKeyField.setPlaceholder("enter a shared string");
+		sharedKeyField.setWidth("15em");
+		sharedKeyField.setValue(generateRandomString(20));
+		Button sharedKeyButton = new Button("Set Shared Key and restart apps",
+		        e -> {
+			        if (sharedKeyField.getValue() == null || sharedKeyField.getValue().isBlank()) {
+				        sharedKeyField.setErrorMessage("The shared key cannot be empty");
+				        sharedKeyField.setInvalid(true);
+			        } else {
+				        flyCommands.doSetSharedKey(sharedKeyField.getValue());
+			        }
+		        });
+		hl2.add(label2, sharedKeyField, sharedKeyButton);
+
+		HorizontalLayout hl3 = new HorizontalLayout();
+		hl3.setMargin(false);
+		NativeLabel label3 = new NativeLabel("");
+		label3.setWidth(LEFT_LABEL_WIDTH);
+		Html sharedKeyExplanation3 = new Html("""
+				<div>
+					The shared key is a value that is exchanged between owlcms and publicresults so they can trust one another. 
+					<br />Setting the shared key is only needed once, when you first connect the programs together.
+					<ul style="margin:0; width: 45em">
+						<li>
+							<em>If your owlcms is running locally at the competition site</em>, you will need to set this
+							value as the shared key on the laptop using the owlcms user interface, in the Preparation - Settings - Connexions section.
+						</li>
+						<li>
+							<em>If you are running both owlcms and publicresults in the cloud</em>, then this button will set the shared key for both.
+							Wait until you have created both owlcms and publicresults.
+						</li>
+						<li>
+		                    You do <em>not</em> need to set the key again after updating or restarting the applications.
+						</li>
+					</ul>
+				</div>
+				""");
+		hl3.add(label3,sharedKeyExplanation3);
+
+		hl2.getStyle().set("margin-top", "1em");
+		publicResultsSection.add(hl2,hl3);
 	}
 
 	private void showApps(Map<AppType, App> appMap, VerticalLayout apps) {
