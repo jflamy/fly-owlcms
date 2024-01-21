@@ -61,7 +61,7 @@ public class VersionInfo {
 	}
 
 	public void updateReferenceVersionString() {
-		updateReferenceVersionString(this.currentVersionString.contains("-"));
+		updateReferenceVersionString(this.currentVersionString.contains("-")||this.currentVersionString.contentEquals("prerelease"));
 	}
 
 	public String getReferenceVersionString() {
