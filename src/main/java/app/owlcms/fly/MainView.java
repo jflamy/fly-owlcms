@@ -9,7 +9,6 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.IFrame;
 import com.vaadin.flow.component.login.LoginOverlay;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -47,24 +46,6 @@ public class MainView extends VerticalLayout {
 		view = this;
 		view.setSizeFull();
 
-		Html publicResultsInfo = new Html(
-		        """
-		                <div>
-		                	<h3>Publish LIVE results to anyone the Internet, for free</h3>
-		                	<h5 style="margin-top: 0.2em; margin-bottom: 0.2em">From either on-site or cloud owlcms</h4>
-		                	<ul>
-		                		<li>
-		                			<a href='./apps'><span style="border:solid; border-width: 1px; padding: 2px;">Login</span></a> and use this site to create a free cloud server that will make your competition results available LIVE, with no delays.
-		                			To anyone in the world with internet access, on a phone, tablet, or laptop.
-		                		</li>
-		                		<li>
-		                			This also works if you run your competitions locally on a Windows, Mac or Linux laptop and have Internet access at your site.
-		                			Your results will be sent to the cloud results server.
-		                		</li>
-		                	</ul>
-		                </div>
-		                """);
-
 		Html owlcmsInfo = new Html(
 		        """
 					<div>
@@ -76,11 +57,34 @@ public class MainView extends VerticalLayout {
 								can referee manually or using <a style="text-decoration:underline" href="https://owlcms.github.io/owlcms4/#/Refereeing">phones</a>.
 							</li>
 							<li>
-								<a href='./apps'><span style="border:solid; border-width: 1px; padding: 2px;">Login</span></a> to create and manage your free applications on the <a style="text-decoration:underline" href="https://fly.io" target="_blank">fly.io</a> cloud.
+								<a href='./apps'><span style="border:solid; border-width: 1px; padding: 2px;">Login</span></a> and follow these
+								<a style="text-decoration:underline" target="_blank" href="https://owlcms.github.io/owlcms4/#/Fly">instructions</a>
+							    to create and manage your free applications on the <a style="text-decoration:underline" href="https://fly.io" target="_blank">fly.io</a> cloud.
 							</li>
 						</ul>
 					</div>
 		            """);
+
+		Html publicResultsInfo = new Html(
+		        """
+		                <div>
+		                	<h3>Publish LIVE results to anyone the Internet, for free</h3>
+		                	<h5 style="margin-top: 0.2em; margin-bottom: 0.2em">From either on-site or cloud owlcms</h4>
+		                	<ul>
+		                		<li>
+		                			<a href='./apps'><span style="border:solid; border-width: 1px; padding: 2px;">Login</span></a>
+		                			and follow these <a style="text-decoration:underline" target="_blank" href="https://owlcms.github.io/owlcms4/#/Fly?id=create-publicresults">instructions</a>
+		                			to create a free cloud server that will make your competition results available LIVE, with no delays.
+		                			To anyone in the world with internet access, on a phone, tablet, or laptop.
+		                		</li>
+		                		<li>
+		                			This also works if you run your competitions locally on a Windows, Mac or Linux laptop and have Internet access at your site.
+		                			Your results will be sent to the cloud results server.
+		                		</li>
+		                	</ul>
+		                </div>
+		                """);
+
 
 		Html propagandaInfo = new Html("""
 		        <div>
