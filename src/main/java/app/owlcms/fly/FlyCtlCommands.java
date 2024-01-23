@@ -112,7 +112,6 @@ public class FlyCtlCommands {
 							e.printStackTrace();
 						}
 						logger.info("login token retrieved {}", string);
-						logger.warn("cross-check 1: {}", getToken());
 					};
 					Consumer<String> errorConsumer = (string) -> {
 						logger.error("token {}", string);
@@ -125,9 +124,7 @@ public class FlyCtlCommands {
 					        null);
 
 					Files.delete(configFile);
-					logger.warn("status {} deleted {}", tokenStatus == 0, configFile.toAbsolutePath().toString());
-					logger.warn("cross-check 2: {}", getToken());
-
+					logger.info("status {} deleted {}", tokenStatus == 0, configFile.toAbsolutePath().toString());
 					this.setUserName(username);
 					return tokenStatus == 0;
 				} catch (IOException | InterruptedException e) {
@@ -297,7 +294,7 @@ public class FlyCtlCommands {
 			if (envPairs.length > 0) {
 				for (int i = 0; i < envPairs.length; i = i + 2) {
 					builder.environment().put(envPairs[i], envPairs[i + 1]);
-					logger.warn("adding {}={}", envPairs[i], envPairs[i + 1]);
+					logger.debug("adding {}={}", envPairs[i], envPairs[i + 1]);
 				}
 			}
 
@@ -375,7 +372,7 @@ public class FlyCtlCommands {
 	private void removeConfig() throws IOException, NoLockException {
 		configFile = Path.of(System.getProperty("user.home"), ".fly/config.yml");
 		try {
-			logger.warn("deleting {}", configFile.toAbsolutePath());
+			logger.info("deleting {}", configFile.toAbsolutePath());
 			Files.delete(configFile);
 		} catch (IOException e) {
 			// ignore.
@@ -399,7 +396,7 @@ public class FlyCtlCommands {
 		ExecutorService executorService = Executors.newFixedThreadPool(2);
 		builder.command("sh", "-c", commandString);
 		if (loggingMessage != null && !loggingMessage.isBlank()) {
-			logger.warn(loggingMessage, commandString);
+			logger.info(loggingMessage, commandString);
 		}
 
 		// run the command

@@ -16,3 +16,27 @@ primary_region = "$REGION"
   auto_start_machines = true
   min_machines_running = 1
   processes = ["app"]
+
+[services.concurrency]
+  type = "requests"
+  hard_limit = 50
+  soft_limit = 40
+
+[http.services.concurrency]
+  type = "requests"
+  hard_limit = 50
+  soft_limit = 40
+
+[[services.ports]]
+  handlers = ["http"]
+  port = 80
+  force_https = true  # optional
+
+[[services.ports]]
+  handlers = ["tls", "http"]
+  port = 443
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 2
+  memory_mb = 512

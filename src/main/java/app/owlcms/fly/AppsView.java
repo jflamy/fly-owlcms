@@ -7,9 +7,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
-import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -21,7 +19,6 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.NativeLabel;
-import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -144,11 +141,6 @@ public class AppsView extends VerticalLayout {
 			if (app.appType == AppType.OWLCMS) {
 				Map<AppType, App> apps2 = flyCommands.getApps();
 				App dbApp = apps2.get(AppType.DB);
-				// App dbApp = apps2.values().stream()
-				// 		.peek(l -> logger.warn("l.name {} app.name {}",l.name,app.name))
-				// 		.filter(l -> l.name.contentEquals(app.name + "-db"))
-				// 		.findAny()
-				// 		.orElse(null);
 				if (dbApp != null) {
 					execArea.append("Deleting OWLCMS " + app.name, UI.getCurrent());
 					flyCommands.appDestroy(app, null);

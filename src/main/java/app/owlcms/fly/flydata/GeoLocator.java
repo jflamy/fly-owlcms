@@ -41,7 +41,7 @@ public class GeoLocator {
 
 	public static EarthLocation locate(String ipAddressString) {
 		try {
-			logger.warn("ipAddressString {}", ipAddressString);
+			logger.debug("ipAddressString {}", ipAddressString);
 			if (ipAddressString.contentEquals("[0:0:0:0:0:0:0:1]") || ipAddressString.contentEquals("127.0.0.1")) {
 				ipAddressString = "107.171.217.85";
 			}
@@ -53,7 +53,7 @@ public class GeoLocator {
 			Location loc = val.getLocation();
 			return new EarthLocation(val.getCity().getName(), "", loc.getLatitude(), loc.getLongitude());
 		} catch (IOException | GeoIp2Exception e) {
-			logger.warn(e.getMessage());
+			logger./**/warn/**/(e.getMessage());
 		}
 		return null;
 	}
