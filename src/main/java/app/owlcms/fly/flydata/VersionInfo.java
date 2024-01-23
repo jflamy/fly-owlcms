@@ -19,7 +19,7 @@ public class VersionInfo {
 	Logger logger = (Logger) LoggerFactory.getLogger(VersionInfo.class);
 	private Integer comparison;
 
-	VersionInfo(String currentVersionString) {
+	public VersionInfo(String currentVersionString) {
 		this.currentVersionString = currentVersionString;
 		this.updateReferenceVersionString();
 	}

@@ -32,6 +32,7 @@ import app.owlcms.fly.flydata.App;
 import app.owlcms.fly.flydata.AppType;
 import app.owlcms.fly.flydata.EarthLocation;
 import app.owlcms.fly.flydata.GeoLocator;
+import app.owlcms.fly.flydata.VersionInfo;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
@@ -426,6 +427,8 @@ public class AppsView extends VerticalLayout {
 			apps.add(showOwlcmsApp);
 		} else {
 			owlcmsApp = new App("", AppType.OWLCMS, getCurrentRegion(), "stable");
+			String v = publicApp.getReferenceVersion();
+			publicApp.setVersionInfo(new VersionInfo(v));
 			showOwlcmsApp = showApplication(owlcmsApp);
 			apps.add(showOwlcmsApp);
 		}
@@ -436,6 +439,8 @@ public class AppsView extends VerticalLayout {
 			apps.add(showPublicApp);
 		} else {
 			publicApp = new App("", AppType.PUBLICRESULTS, getCurrentRegion(), "stable");
+			String v = publicApp.getReferenceVersion();
+			publicApp.setVersionInfo(new VersionInfo(v));
 			showPublicApp = showApplication(publicApp);
 			apps.add(showPublicApp);
 		}

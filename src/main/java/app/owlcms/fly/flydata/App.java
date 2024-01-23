@@ -36,4 +36,12 @@ public class App implements Comparable<App> {
         return versionInfo == null || versionInfo.getComparison() < 0;
     }
 
+	public VersionInfo getVersionInfo() {
+		return versionInfo;
+	}
+
+	public void setVersionInfo(VersionInfo versionInfo) {
+		this.versionInfo = versionInfo;
+	}
+
 }

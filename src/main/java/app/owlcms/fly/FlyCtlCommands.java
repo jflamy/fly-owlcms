@@ -45,8 +45,10 @@ public class FlyCtlCommands {
 	}
 
 	public void appDeploy(App app, Runnable callback) {
+		String referenceVersion = app.getReferenceVersion();
+		logger.warn("reference version for app {}={}",app);
 		doAppCommand(app, 
-			"fly deploy --app " + app.name + " --image " + app.appType.image + ":" + app.getReferenceVersion() + " --ha=false",
+			"fly deploy --app " + app.name + " --image " + app.appType.image + ":" + referenceVersion + " --ha=false",
 		    callback);
 	}
 
@@ -285,7 +287,7 @@ public class FlyCtlCommands {
 			ProcessBuilder builder = createProcessBuilder(getToken());
 
 			// these can be overridden by the env pairs
-			builder.environment().put("VERSION", "stable");
+			builder.environment().put("VERSION", app.getReferenceVersion());
 			if (app.regionCode != null && !app.regionCode.isBlank()) {
 				builder.environment().put("REGION", app.regionCode);
 			}
