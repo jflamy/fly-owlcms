@@ -22,7 +22,7 @@ primary_region = "$REGION"
   hard_limit = 50
   soft_limit = 45
 
-[http.services.concurrency]
+[http_service.concurrency]
   type = "requests"
   hard_limit = 50
   soft_limit = 45
