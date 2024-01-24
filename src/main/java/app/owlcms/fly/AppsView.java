@@ -427,8 +427,8 @@ public class AppsView extends VerticalLayout {
 			apps.add(showOwlcmsApp);
 		} else {
 			owlcmsApp = new App("", AppType.OWLCMS, getCurrentRegion(), "stable");
-			String v = publicApp.getReferenceVersion();
-			publicApp.setVersionInfo(new VersionInfo(v));
+			String v = owlcmsApp.getReferenceVersion();
+			owlcmsApp.setVersionInfo(new VersionInfo(v));
 			showOwlcmsApp = showApplication(owlcmsApp);
 			apps.add(showOwlcmsApp);
 		}
