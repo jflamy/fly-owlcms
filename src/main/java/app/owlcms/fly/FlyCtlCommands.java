@@ -83,13 +83,17 @@ public class FlyCtlCommands {
 		return false;
 	}
 
-	public boolean doLogin(String username, String password) throws NoLockException {
+	public boolean doLogin(String username, String password, Integer otp) throws NoLockException {
 		synchronized (Main.vaadinBoot) {
 			// we lock against other HTTP threads in our own JVM - we are alone messing with fly in our container
 			try {
 				removeConfig();
 				try {
 					String loginString = "fly auth login --email " + username + " --password '" + password + "'";
+					if (otp != null)  {
+						loginString = loginString + " --otp " + otp;
+					}
+					logger.warn("login string {}", loginString);
 					Consumer<String> outputConsumer = (string) -> {
 						logger.info("login {}", string);
 					};

@@ -11,6 +11,7 @@ import com.vaadin.flow.component.login.LoginOverlay;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.textfield.IntegerField;
 
 import ch.qos.logback.classic.Logger;
 
@@ -35,6 +36,9 @@ public class Login extends LoginOverlay {
 		i18n.setErrorMessage(i18nErrorMessage);
 
 		loginOverlay.setI18n(i18n);
+		IntegerField code = new IntegerField("2FA Authenticator Code (leave empty unless you have enabled 2FA)");
+		code.getElement().setAttribute("name", "code");
+		loginOverlay.getCustomFormArea().add(code);
 
 		Button loginCancelbutton = new Button("Cancel", e -> loginOverlay.close());
 		loginCancelbutton.setWidthFull();
@@ -58,7 +62,7 @@ public class Login extends LoginOverlay {
 			logger.info("user login {} ", e.getUsername());
 			boolean successful;
 			try {
-				successful = tokenConsumer.doLogin(e.getUsername(), e.getPassword());
+				successful = tokenConsumer.doLogin(e.getUsername(), e.getPassword(), code.getValue());
 			} catch (NoLockException e1) {
 				successful = false;
 				Button closeButton = new Button("Close");
