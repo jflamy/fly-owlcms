@@ -3,21 +3,34 @@ export FLY_APP_root=$FLY_APP
 
 # create owlcms don't deploy because no database yet.
 rm -f fly.toml
-flyctl apps create --name $FLY_APP --org personal
+# has already been created in user interface to check for name conflict.
+#flyctl apps create --name $FLY_APP --org personal
 
 # create database and connect to owlcms. 
 export FLY_APP=${FLY_APP_root}-db
 flyctl postgres create --name $FLY_APP --initial-cluster-size 1 --vm-size shared-cpu-1x --volume-size 1 --region=$REGION --org personal
 
-set +x
-echo
-echo "***** The next step can take a couple minutes.  Please be patient *****"
-set -x
-flyctl postgres attach $FLY_APP --app $FLY_APP_root --yes
-
-# deploy owlcms
+# initial deploy owlcms
 export FLY_APP=$FLY_APP_root
 tmpfile=$(mktemp)
 envsubst < owlcms.toml > $tmpfile
 flyctl deploy --ha=false --config $tmpfile
 rm -f $tmpfile
+
+set +x
+echo
+echo "***** The next step can take a couple minutes.  Please be patient *****"
+set -x
+flyctl postgres attach ${FLY_APP_root}-db --app $FLY_APP_root --yes
+
+flyctl secrets list --app $FLY_APP_root
+
+# deploy owlcms again to get the secrets
+export FLY_APP=$FLY_APP_root
+tmpfile=$(mktemp)
+envsubst < owlcms.toml > $tmpfile
+flyctl deploy --ha=false --config $tmpfile
+rm -f $tmpfile
+
+echo after redeploy
+flyctl secrets list --app $FLY_APP_root

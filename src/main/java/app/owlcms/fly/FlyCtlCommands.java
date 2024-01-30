@@ -64,7 +64,7 @@ public class FlyCtlCommands {
 		doAppCommand(app, app.appType.script, null);
 	}
 
-	public boolean createApp(String value) {
+	boolean createApp(String value) {
 		try {
 			hostNameStatus = 0;
 			String commandString = "fly apps create --name " + value + " --org personal";
