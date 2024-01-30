@@ -396,7 +396,7 @@ public class AppsView extends VerticalLayout {
 		label3.setWidth(LEFT_LABEL_WIDTH);
 
 		Icon icon = VaadinIcon.QUESTION_CIRCLE_O.create();
-		HorizontalLayout clickHere = new HorizontalLayout(icon, new Text("\u00a0What is this?"));
+		HorizontalLayout clickHere = new HorizontalLayout(icon, new Text("\u00a0Click here for explanations."));
 		clickHere.getStyle().set("color", "slate");
 		clickHere.setSpacing(false);
 		icon.getStyle().set("zoom", "90%");
