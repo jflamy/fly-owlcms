@@ -8,17 +8,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vaadin.flow.component.Html;
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
+import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.AnchorTarget;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.NativeLabel;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -390,26 +394,37 @@ public class AppsView extends VerticalLayout {
 		hl3.setMargin(false);
 		NativeLabel label3 = new NativeLabel("");
 		label3.setWidth(LEFT_LABEL_WIDTH);
-		Html sharedKeyExplanation3 = new Html("""
-				<div>
-					The shared key is a value that is exchanged between owlcms and publicresults so they can trust one another. 
-					<br />Setting the shared key is only needed once, when you first connect the programs together.
-					<ul style="margin:0; width: 45em">
-						<li>
-							<em>If your owlcms is running locally at the competition site</em>, you will need to set this
-							value as the shared key on the laptop using the owlcms user interface, in the Preparation - Settings - Connexions section.
-						</li>
-						<li>
-							<em>If you are running both owlcms and publicresults in the cloud</em>, then this button will set the shared key for both.
-							Wait until you have created both owlcms and publicresults.
-						</li>
-						<li>
-		                    You do <em>not</em> need to set the key again after updating or restarting the applications.
-						</li>
-					</ul>
-				</div>
-				""");
-		hl3.add(label3,sharedKeyExplanation3);
+
+		Icon icon = VaadinIcon.QUESTION_CIRCLE_O.create();
+		HorizontalLayout clickHere = new HorizontalLayout(icon, new Text("\u00a0What is this?"));
+		clickHere.getStyle().set("color", "slate");
+		clickHere.setSpacing(false);
+		icon.getStyle().set("zoom", "90%");
+		clickHere.setAlignItems(Alignment.CENTER);
+		Html sharedKeyExplanation4 = new Html("""
+			<div>
+				<ul style="margin:0; width: 45em">
+					<li>
+					 The shared key is a value that is exchanged between owlcms and publicresults so they can trust one another.
+					</li>
+					<li>
+						Setting the shared key is only needed once, when you first connect the programs together.
+					</li>
+					<li>
+						<em>If your owlcms is running locally at the competition site</em>, you will need to set this
+						value as the shared key on the laptop using the owlcms user interface, in the Preparation - Settings - Connexions section.
+					</li>
+					<li>
+						<em>If you are running both owlcms and publicresults in the cloud</em>, then this button will set the shared key for both.
+						Wait until you have created both owlcms and publicresults.
+					</li>
+					<li>
+						You do <em>not</em> need to set the key again after updating or restarting the applications.
+					</li>
+				</ul>
+			</div>
+			""");
+		hl3.add(label3,new Details(clickHere, sharedKeyExplanation4));
 
 		hl2.getStyle().set("margin-top", "1em");
 		publicResultsSection.add(hl2,hl3);
