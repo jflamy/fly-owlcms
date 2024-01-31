@@ -1,4 +1,4 @@
-package app.owlcms.fly;
+package app.owlcms.fly.ui;
 
 import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.component.page.Push;

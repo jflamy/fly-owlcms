@@ -1,4 +1,4 @@
-package app.owlcms.fly;
+package app.owlcms.fly.ui;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

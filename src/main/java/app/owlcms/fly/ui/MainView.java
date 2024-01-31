@@ -1,4 +1,4 @@
-package app.owlcms.fly;
+package app.owlcms.fly.ui;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +14,8 @@ import com.vaadin.flow.component.login.LoginOverlay;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
+
+import app.owlcms.fly.commands.FlyCtlCommands;
 
 /**
  * The main view contains a text field for getting the user name and a button that shows a greeting message in a

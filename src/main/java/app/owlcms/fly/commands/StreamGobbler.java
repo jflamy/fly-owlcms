@@ -1,4 +1,4 @@
-package app.owlcms.fly;
+package app.owlcms.fly.commands;
 
 import java.io.BufferedReader;
 import java.io.InputStream;

@@ -4,7 +4,7 @@
  * Licensed under the Non-Profit Open Software License version 3.0  ("NPOSL-3.0")
  * License text at https://opensource.org/licenses/NPOSL-3.0
  *******************************************************************************/
-package app.owlcms.fly;
+package app.owlcms.fly.utils;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;

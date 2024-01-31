@@ -1,4 +1,4 @@
-package app.owlcms.fly;
+package app.owlcms.fly.ui;
 
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +13,8 @@ import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.textfield.IntegerField;
 
+import app.owlcms.fly.commands.FlyCtlCommands;
+import app.owlcms.fly.commands.NoLockException;
 import ch.qos.logback.classic.Logger;
 
 public class Login extends LoginOverlay {

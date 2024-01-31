@@ -1,4 +1,4 @@
-package app.owlcms.fly;
+package app.owlcms.fly.commands;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,9 +20,11 @@ import org.slf4j.LoggerFactory;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.server.VaadinSession;
 
+import app.owlcms.fly.Main;
 import app.owlcms.fly.flydata.App;
 import app.owlcms.fly.flydata.AppType;
 import app.owlcms.fly.flydata.EarthLocation;
+import app.owlcms.fly.ui.ExecArea;
 
 public class FlyCtlCommands {
 	int appNameStatus;
@@ -46,10 +48,11 @@ public class FlyCtlCommands {
 
 	public void appDeploy(App app, Runnable callback) {
 		String referenceVersion = app.getReferenceVersion();
-		logger.warn("reference version for app {}={}",app);
-		doAppCommand(app, 
-			"fly deploy --app " + app.name + " --image " + app.appType.image + ":" + referenceVersion + " --ha=false",
-		    callback);
+		logger.warn("reference version for app {}={}", app);
+		doAppCommand(app,
+		        "fly deploy --app " + app.name + " --image " + app.appType.image + ":" + referenceVersion
+		                + " --ha=false",
+		        callback);
 	}
 
 	public void appDestroy(App app, Runnable callback) {
@@ -64,9 +67,12 @@ public class FlyCtlCommands {
 		doAppCommand(app, app.appType.script, null);
 	}
 
-	boolean createApp(String value) {
+	String creationError;
+
+	public boolean createApp(String value) throws NameTakenException, CreationErrorException {
 		try {
 			hostNameStatus = 0;
+			creationError = "Unexpected error, please report to owlcms-bugs@jflamy.dev";
 			String commandString = "fly apps create --name " + value + " --org personal";
 			Consumer<String> outputConsumer = (string) -> {
 				logger.info("create output {}", string);
@@ -74,10 +80,26 @@ public class FlyCtlCommands {
 			Consumer<String> errorConsumer = (string) -> {
 				logger.error("create error {}", string);
 				hostNameStatus = -1;
+				creationError = string;
+				throw new RuntimeException(
+				        (string.contains("taken") || string.contains("already")) ? new NameTakenException(string) : new CreationErrorException(string));
 			};
 			runCommand("create App {}", commandString, outputConsumer, errorConsumer, true, null);
-			return hostNameStatus == 0;
-		} catch (Exception e) {
+			if (hostNameStatus == 0) {
+				return true;
+			} else {
+				throw new CreationErrorException(creationError);
+			}
+		} catch (RuntimeException e) {
+			Throwable wrapped = e.getCause();
+			if (wrapped instanceof NameTakenException) {
+				throw ((NameTakenException) e.getCause());
+			} else if (wrapped instanceof CreationErrorException) {
+				throw ((CreationErrorException) e.getCause());
+			} else {
+				throw e;
+			}
+		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 		}
 		return false;
@@ -90,7 +112,7 @@ public class FlyCtlCommands {
 				removeConfig();
 				try {
 					String loginString = "fly auth login --email " + username + " --password '" + password + "'";
-					if (otp != null)  {
+					if (otp != null) {
 						loginString = loginString + " --otp " + otp;
 					}
 					logger.warn("login string {}", loginString);
@@ -228,9 +250,8 @@ public class FlyCtlCommands {
 		Map<AppType, App> apps = new HashMap<>();
 		for (String s : appNames) {
 			try {
-				String commandString = 
-					"fly machines list --app %s --json | jq -r '.[] | [.region, .image_ref.repository, .image_ref.tag] | @tsv'"
-					.formatted(s);
+				String commandString = "fly machines list --app %s --json | jq -r '.[] | [.region, .image_ref.repository, .image_ref.tag] | @tsv'"
+				        .formatted(s);
 				Consumer<String> outputConsumer = (string) -> {
 					String[] fields = string.split("\t");
 					String region = fields[0];
