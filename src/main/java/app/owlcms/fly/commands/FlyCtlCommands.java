@@ -43,28 +43,38 @@ public class FlyCtlCommands {
 	}
 
 	public void appCreate(App app, Runnable callback) {
-		doAppCommand(app, app.appType.script, callback);
+		doAppCommand(app, app.appType.create, callback);
 	}
 
 	public void appDeploy(App app, Runnable callback) {
 		String referenceVersion = app.getReferenceVersion();
 		logger.warn("reference version for app {}={}", app);
 		doAppCommand(app,
-		        "fly deploy --app " + app.name + " --image " + app.appType.image + ":" + referenceVersion
-		                + " --ha=false",
-		        callback);
+				"fly deploy --app " + app.name + " --image " + app.appType.image + ":" + referenceVersion
+						+ " --ha=false",
+				callback);
 	}
 
 	public void appDestroy(App app, Runnable callback) {
 		doAppCommand(app, "fly apps destroy " + app.name + " --yes", callback);
 	}
 
+	public void appStop(App app, Runnable callback) {
+		doAppCommand(app, "fly machines stop " + app.machine + " --app " + app.name, callback);
+	}
+
 	public void appRestart(App app) {
+		if (app.appType == AppType.OWLCMS) {
+			App app2 = appMap.get(AppType.DB);
+			if (app2 != null) {
+				doAppCommand(app2, "fly machines restart " + app2.machine + " --app " + app2.name, null);
+			}
+		}
 		doAppCommand(app, "fly apps restart --skip-health-checks " + app.name, null);
 	}
 
 	public void appSharedSecret(App app) {
-		doAppCommand(app, app.appType.script, null);
+		doAppCommand(app, app.appType.create, null);
 	}
 
 	String creationError;
@@ -82,7 +92,8 @@ public class FlyCtlCommands {
 				hostNameStatus = -1;
 				creationError = string;
 				throw new RuntimeException(
-				        (string.contains("taken") || string.contains("already")) ? new NameTakenException(string) : new CreationErrorException(string));
+						(string.contains("taken") || string.contains("already")) ? new NameTakenException(string)
+								: new CreationErrorException(string));
 			};
 			runCommand("create App {}", commandString, outputConsumer, errorConsumer, true, null);
 			if (hostNameStatus == 0) {
@@ -107,7 +118,8 @@ public class FlyCtlCommands {
 
 	public boolean doLogin(String username, String password, Integer otp) throws NoLockException {
 		synchronized (Main.vaadinBoot) {
-			// we lock against other HTTP threads in our own JVM - we are alone messing with fly in our container
+			// we lock against other HTTP threads in our own JVM - we are alone messing with
+			// fly in our container
 			try {
 				removeConfig();
 				try {
@@ -149,7 +161,7 @@ public class FlyCtlCommands {
 					// last argument is null because we don't want to provide a token
 					// since we are fetching one
 					runCommand("retrieving token from config ", commandString, outputConsumer, errorConsumer, false,
-					        null);
+							null);
 
 					Files.delete(configFile);
 					logger.info("status {} deleted {}", tokenStatus == 0, configFile.toAbsolutePath().toString());
@@ -193,6 +205,26 @@ public class FlyCtlCommands {
 					runCommand("setting secret {}", commandString, outputConsumer, errorConsumer, true, null);
 				} catch (Exception e) {
 					e.printStackTrace();
+				}
+
+				// connect OWLCMS to PUBLICRESULTS
+				if (app.appType == AppType.OWLCMS) {
+					try {
+						App pr = appMap.get(AppType.PUBLICRESULTS);
+						String name = "https://" + pr.name + ".fly.dev";
+						hostNameStatus = 0;
+						String commandString = "fly secrets set OWLCMS_REMOTE='" + name + "' --app " + app.name;
+						Consumer<String> outputConsumer = (string) -> {
+							execArea.append(string, ui);
+						};
+						Consumer<String> errorConsumer = (string) -> {
+							hostNameStatus = -1;
+							execArea.appendError(string, ui);
+						};
+						runCommand("setting secret {}", commandString, outputConsumer, errorConsumer, true, null);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 			}
 			try {
@@ -250,16 +282,18 @@ public class FlyCtlCommands {
 		Map<AppType, App> apps = new HashMap<>();
 		for (String s : appNames) {
 			try {
-				String commandString = "fly machines list --app %s --json | jq -r '.[] | [.region, .image_ref.repository, .image_ref.tag] | @tsv'"
-				        .formatted(s);
+				String commandString = "fly machines list --app %s --json | jq -r '.[] | [.region, .image_ref.repository, .image_ref.tag, .id, .state] | @tsv'"
+						.formatted(s);
 				Consumer<String> outputConsumer = (string) -> {
 					String[] fields = string.split("\t");
 					String region = fields[0];
 					String image = fields[1];
 					String tag = fields[2];
+					String machine = fields[3];
+					String status = fields[4];
 					logger.debug("region={} image={} tag={}", region, image, tag);
 					AppType appType = AppType.byImage(image);
-					App app = new App(s, appType, region, tag);
+					App app = new App(s, appType, region, tag, machine, status);
 					app.created = true;
 					if (appType != null) {
 						apps.put(appType, app);
@@ -294,15 +328,16 @@ public class FlyCtlCommands {
 		logger.debug("FLY_ACCESS_TOKEN {}", builder.environment().get("FLY_ACCESS_TOKEN"));
 
 		builder.environment().put("PATH", "."
-		        + File.pathSeparator + homeDir + "/.fly/bin"
-		        + File.pathSeparator + "/app/fly/bin"
-		        + File.pathSeparator + path);
+				+ File.pathSeparator + homeDir + "/.fly/bin"
+				+ File.pathSeparator + "/app/fly/bin"
+				+ File.pathSeparator + path);
 		return builder;
 	}
 
 	/*
-	 * The ... arguments at the end are pairs of strings. For example, to override the REGION you could add "REGION",
-	 * "yul" (same to add other environment variables required in the commandString)
+	 * The ... arguments at the end are pairs of strings. For example, to override
+	 * the REGION you could add "REGION", "yul" (same to add other environment
+	 * variables required in the commandString)
 	 */
 	private void doAppCommand(App app, String commandString, Runnable callback, String... envPairs) {
 		UI ui = UI.getCurrent();
@@ -333,7 +368,7 @@ public class FlyCtlCommands {
 					execArea.appendError(string, ui);
 				};
 				runCommand("=========== running command {}", commandString, outputConsumer, errorConsumer, builder,
-				        callback);
+						callback);
 				Thread.sleep(5000);
 				ui.access(() -> execArea.setVisible(false));
 			} catch (Exception e) {
@@ -343,7 +378,7 @@ public class FlyCtlCommands {
 	}
 
 	private synchronized List<String> getAppNames(ProcessBuilder builder, ExecArea execArea, UI ui)
-	        throws NoPermissionException {
+			throws NoPermissionException {
 		List<String> appNames = new ArrayList<>();
 		setReason("");
 		appNameStatus = 0;
@@ -370,7 +405,7 @@ public class FlyCtlCommands {
 	}
 
 	private synchronized List<EarthLocation> getLocations(ProcessBuilder builder, ExecArea execArea, UI ui)
-	        throws NoPermissionException {
+			throws NoPermissionException {
 		List<EarthLocation> locations = new ArrayList<>();
 		appNameStatus = 0;
 		try {
@@ -378,7 +413,7 @@ public class FlyCtlCommands {
 			Consumer<String> outputConsumer = (string) -> {
 				String[] values = string.split("\t");
 				locations.add(new EarthLocation(values[0], values[1], Double.parseDouble(values[2]),
-				        Double.parseDouble(values[3])));
+						Double.parseDouble(values[3])));
 			};
 			Consumer<String> errorConsumer = (string) -> {
 				appNameStatus = -1;
@@ -393,7 +428,8 @@ public class FlyCtlCommands {
 		return locations;
 	}
 
-	// flyctl platform regions --json | jq -r '.[] | select(.RequiresPaidPlan == false) | [.Name, .Latitude, .Longitude]
+	// flyctl platform regions --json | jq -r '.[] | select(.RequiresPaidPlan ==
+	// false) | [.Name, .Latitude, .Longitude]
 	// | @tsv'
 
 	private void removeConfig() throws IOException, NoLockException {
@@ -411,17 +447,17 @@ public class FlyCtlCommands {
 	}
 
 	private void runCommand(String loggingMessage, String commandString, Consumer<String> outputConsumer,
-	        Consumer<String> errorConsumer, boolean useToken, Runnable callback)
-	        throws IOException, InterruptedException {
+			Consumer<String> errorConsumer, boolean useToken, Runnable callback)
+			throws IOException, InterruptedException {
 		ProcessBuilder builder = createProcessBuilder(useToken ? getToken() : null);
 		runCommand(loggingMessage, commandString, outputConsumer, errorConsumer, builder, callback);
 	}
 
 	private void runCommand(String loggingMessage, String commandString, Consumer<String> outputConsumer,
-	        Consumer<String> errorConsumer, ProcessBuilder builder, Runnable callback)
-	        throws IOException, InterruptedException {
+			Consumer<String> errorConsumer, ProcessBuilder builder, Runnable callback)
+			throws IOException, InterruptedException {
 		ExecutorService executorService = Executors.newFixedThreadPool(2);
-		builder.command("sh", "-c", commandString);
+		builder.command("/bin/sh", "-c", commandString);
 		if (loggingMessage != null && !loggingMessage.isBlank()) {
 			logger.info(loggingMessage, commandString);
 		}

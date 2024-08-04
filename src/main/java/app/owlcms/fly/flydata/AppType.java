@@ -4,13 +4,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum AppType {
-    OWLCMS("owlcms/owlcms","createOwlcms.sh"),
-    PUBLICRESULTS("owlcms/publicresults","createPublicResults.sh"),
-    DB("flyio/postgres-flex","");
+    OWLCMS("owlcms/owlcms","scripts/createOwlcms.sh"),
+    PUBLICRESULTS("owlcms/publicresults","scripts/createPublicResults.sh"),
+    DB("flyio/postgres-flex",null);
 
     public final String image;
-    public final String script;
-
+    public final String create;
+    
     private static final Map<String, AppType> BY_IMAGE = new HashMap<>();
     static {
         for (AppType e : values()) {
@@ -18,9 +18,9 @@ public enum AppType {
         }
     }
 
-    private AppType(String image, String script) {
+    private AppType(String image, String create) {
         this.image = image;
-        this.script = script;
+        this.create = create;
     }
 
     public static AppType byImage(String image) {

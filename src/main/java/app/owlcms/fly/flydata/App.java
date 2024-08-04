@@ -6,12 +6,16 @@ public class App implements Comparable<App> {
     public boolean created;
     public String regionCode;
 	private VersionInfo versionInfo;
+	public boolean stopped;
+	public String machine;
 
-    public App(String s, AppType appType, String region, String version) {
+    public App(String s, AppType appType, String region, String version, String machine, String status) {
         this.name = s;
         this.appType = appType;
         this.regionCode = region;
         this.versionInfo = new VersionInfo(version);
+        this.machine = machine;
+        this.stopped = status == null ? true : status.equalsIgnoreCase("stopped");
     }
 
     @Override
@@ -21,7 +25,8 @@ public class App implements Comparable<App> {
 
     @Override
     public String toString() {
-        return "App [appType=" + appType + ", name=" + name + ", regionCode=" + regionCode + "]";
+        return "App [appType=" + appType + ", name=" + name + ", regionCode=" + regionCode + ", versionInfo="
+                + versionInfo + ", stopped=" + stopped + ", machine=" + machine + "]";
     }
 
 	public String getCurrentVersion() {

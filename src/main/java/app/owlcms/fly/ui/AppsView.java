@@ -43,7 +43,8 @@ import app.owlcms.fly.flydata.VersionInfo;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * The main view contains a text field for getting the user name and a button that shows a greeting message in a
+ * The main view contains a text field for getting the user name and a button
+ * that shows a greeting message in a
  * notification.
  */
 @Route("apps")
@@ -118,21 +119,21 @@ public class AppsView extends VerticalLayout {
 		deletionDialog.setHeader("Deletion Confirmation Required");
 		if (app.appType == AppType.OWLCMS) {
 			deletionDialog.setText(new Html(
-			        """
-			        <div>
-			           This will remove the application and make the name available again.
-			           <br />
-			           NOTE: the database will also be deleted; make sure you have
-			           exported the database if you need to keep the information.
-			        </div>
-			        """));
+					"""
+							<div>
+							   This will remove the application and make the name available again.
+							   <br />
+							   NOTE: the database will also be deleted; make sure you have
+							   exported the database if you need to keep the information.
+							</div>
+							"""));
 		} else {
 			deletionDialog.setText(new Html(
-			        """
-			        <div>
-			           This will remove the application and make the name available again.
-			        </div>
-			        """));
+					"""
+							<div>
+							   This will remove the application and make the name available again.
+							</div>
+							"""));
 		}
 
 		deletionDialog.setConfirmText("Delete");
@@ -165,28 +166,86 @@ public class AppsView extends VerticalLayout {
 		return deletionDialog;
 	}
 
+	private ConfirmDialog buildStopDialog(App app, Runnable callback) {
+		ConfirmDialog stopDialog = new ConfirmDialog();
+		stopDialog.setHeader("Stop Confirmation Required");
+		if (app.appType == AppType.OWLCMS) {
+			stopDialog.setText(new Html(
+					"""
+							<div>
+							   This will stop the application and minimize further billing.
+							   <br />
+							   You will only be billed a very small amount for disk space.
+							   NOTE: the database will also be stopped, but not deleted.
+							   <br />
+							   To completely stop billing, export your database and delete the application.
+							</div>
+							"""));
+		} else {
+			stopDialog.setText(new Html(
+					"""
+							<div>
+							   This will stop the application and stop further billing.
+							   <br />
+							   You will only be billed a very small amount for disk space.
+							   <br />
+							   To completely stop billing, delete the application.
+							</div>
+							"""));
+		}
+
+		stopDialog.setConfirmText("Stop");
+		stopDialog.setConfirmButtonTheme("error primary");
+		stopDialog.setCancelButtonTheme("primary");
+		stopDialog.setCancelable(true);
+		stopDialog.setCancelText("Cancel");
+		stopDialog.addConfirmListener(e -> {
+
+			if (app.appType == AppType.OWLCMS) {
+				Map<AppType, App> apps2 = flyCommands.getApps();
+				App dbApp = apps2.get(AppType.DB);
+				if (dbApp != null) {
+					execArea.append("Stopping OWLCMS " + app.name, UI.getCurrent());
+					flyCommands.appStop(app, null);
+					execArea.append("Stopping OWLCMS database " + dbApp.name, UI.getCurrent());
+					flyCommands.appStop(dbApp, callback);
+				} else {
+					execArea.append("Stopping OWLCMS - no database " + app.name, UI.getCurrent());
+					flyCommands.appStop(app, callback);
+				}
+			} else {
+				execArea.append("Stopping PUBLICRESULTS " + app.name, UI.getCurrent());
+				flyCommands.appStop(app, callback);
+			}
+		});
+		stopDialog.addCancelListener(e -> {
+			stopDialog.close();
+		});
+		return stopDialog;
+	}
+
 	private VerticalLayout buildIntro() {
 		Html p1 = new Html(
-		        """
-		        <div style="width: 60em">
-		        This page creates and manages your owlcms applications on the fly.io cloud.
-		               <ul style="margin-top: 0">
-		               	<li>
-		                      	Scenario 1: <b>owlcms in the cloud</b>: create only owlcms, no need to create a publicresults
-		                   </li>
-		               	<li>
-		                      	Scenario 2: <b>owlcms in the cloud, publicresults in the cloud</b>.
-		                      	1. Create both applications 2. set the shared key using this page.
-		                   </li>
-		               	<li>Scenario 3: <b>owlcms at the competition site and publicresults in the cloud</b>:
-		        			1. Create only publicresults. 2. See 
-		        			<a href='https://owlcms.github.io/owlcms4/#/Fly?id=connecting-an-on-site-owlcms-to-a-cloud-publicresults'
-		        			style='text-decoration:underline' target=_'blank'>Connecting an on-site owlcms to a cloud publicresults</a>.
-							3. Copy the key from owlcms and set it as the shared key.
-		        		</li>
-		        	</ul>
-		        </div>
-		        """);
+				"""
+						   <div style="width: 60em">
+						   This page creates and manages your owlcms applications on the fly.io cloud.
+						          <ul style="margin-top: 0">
+						          	<li>
+						                 	Scenario 1: <b>owlcms in the cloud</b>: create only owlcms, no need to create a publicresults
+						              </li>
+						          	<li>
+						                 	Scenario 2: <b>owlcms in the cloud, publicresults in the cloud</b>.
+						                 	1. Create both applications 2. set the shared key using this page.
+						              </li>
+						          	<li>Scenario 3: <b>owlcms at the competition site and publicresults in the cloud</b>:
+						   			1. Create only publicresults. 2. See
+						   			<a href='https://owlcms.github.io/owlcms4/#/Fly?id=connecting-an-on-site-owlcms-to-a-cloud-publicresults'
+						   			style='text-decoration:underline' target=_'blank'>Connecting an on-site owlcms to a cloud publicresults</a>.
+						3. Copy the key from owlcms and set it as the shared key.
+						   		</li>
+						   	</ul>
+						   </div>
+						   """);
 		VerticalLayout intro = new VerticalLayout(p1);
 		intro.setSpacing(false);
 		intro.setPadding(false);
@@ -290,36 +349,36 @@ public class AppsView extends VerticalLayout {
 
 		if (regionCode != null) {
 			serverLoc = serverLocations.stream().filter(l -> regionCode.contentEquals(l.getCode())).findAny()
-			        .orElse(null);
+					.orElse(null);
 		} else {
 			serverLoc = serverLocations.get(0);
 		}
 		serverCombo.setValue(serverLoc);
 
 		Button creationButton = new Button("Create",
-		        e -> {
-			        String value = nameField.getValue();
-			        if (value == null || value.isBlank()) {
-				        nameField.setErrorMessage("You must provide a value");
-				        nameField.setInvalid(true);
-			        } else {
-				        String siteName = value.toLowerCase() + ".fly.dev";
+				e -> {
+					String value = nameField.getValue();
+					if (value == null || value.isBlank()) {
+						nameField.setErrorMessage("You must provide a value");
+						nameField.setInvalid(true);
+					} else {
+						String siteName = value.toLowerCase() + ".fly.dev";
 
-				        try {
-					        flyCommands.createApp(value.toLowerCase());
-					        nameField.setInvalid(false);
-					        app.name = value.toLowerCase();
-					        app.regionCode = serverCombo.getValue().getCode();
-					        flyCommands.appCreate(app, () -> doListApplications(apps, ui));
-				        } catch (NameTakenException e1) {
-					        nameField.setErrorMessage(siteName + " is already taken.");
-					        nameField.setInvalid(true);
-				        } catch (CreationErrorException e1) {
-					        nameField.setErrorMessage(e1.getMessage());
-					        nameField.setInvalid(true);
-				        }
-			        }
-		        });
+						try {
+							flyCommands.createApp(value.toLowerCase());
+							nameField.setInvalid(false);
+							app.name = value.toLowerCase();
+							app.regionCode = serverCombo.getValue().getCode();
+							flyCommands.appCreate(app, () -> doListApplications(apps, ui));
+						} catch (NameTakenException e1) {
+							nameField.setErrorMessage(siteName + " is already taken.");
+							nameField.setInvalid(true);
+						} catch (CreationErrorException e1) {
+							nameField.setErrorMessage(e1.getMessage());
+							nameField.setInvalid(true);
+						}
+					}
+				});
 		hl.add(serverCombo, creationButton);
 		publicResultsSection.add(hl);
 		hl.setAlignItems(Alignment.BASELINE);
@@ -333,14 +392,15 @@ public class AppsView extends VerticalLayout {
 		currentVersion = currentVersion + (currentVersion.matches("^[0-9].*$") ? "" : " (version number unknown)");
 		boolean updateRequired = app.isUpdateRequired();
 		VerticalLayout versionInfo = new VerticalLayout(a,
-		        new Html(
-		                """
-		                <div>your version: %s<br />latest version: %s<span style="color:red">%s</span><br/> region: %s</div>
-		                """.formatted(
-		                        currentVersion,
-		                        app.getReferenceVersion(),
-		                        updateRequired ? " Please Update" : "",
-		                        app.regionCode)));
+				new Html(
+						"""
+								<div>your version: %s<br />latest version: %s<span style="color:red">%s</span><br/> region: %s</div>
+								"""
+								.formatted(
+										currentVersion,
+										app.getReferenceVersion(),
+										updateRequired ? " Please Update" : "",
+										app.regionCode)));
 		versionInfo.setMargin(false);
 		versionInfo.setPadding(false);
 		versionInfo.setSpacing(false);
@@ -348,22 +408,47 @@ public class AppsView extends VerticalLayout {
 		hl.add(versionInfo);
 
 		Button updateButton = new Button("Update",
-		        e -> flyCommands.appDeploy(app, () -> doListApplications(apps, ui)));
+				e -> flyCommands.appDeploy(app, () -> doListApplications(apps, ui)));
 		if (updateRequired) {
 			updateButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 		}
 		hl.add(updateButton);
 
 		Button restartButton = new Button("Restart",
-		        e -> flyCommands.appRestart(app));
+				e -> {
+					flyCommands.appRestart(app);
+					try {
+						Thread.sleep(2000);
+					} catch (InterruptedException e1) {
+					}
+					doListApplications(apps, ui);
+				});
+
 		hl.add(restartButton);
+
 		ConfirmDialog deletionDialog = buildDeletionDialog(app,
-		        () -> doListApplications(apps, ui));
+				() -> doListApplications(apps, ui));
 		Button deleteButton = new Button("Delete");
 		deleteButton.addClickListener(event -> {
 			deletionDialog.open();
 		});
 		hl.add(deleteButton);
+
+		if (!app.stopped) {
+			ConfirmDialog stopDialog = buildStopDialog(app,
+					() -> {
+						try {
+							Thread.sleep(2000);
+						} catch (InterruptedException e1) {
+						}
+						doListApplications(apps, ui);
+					});
+			Button stopButton = new Button("Stop");
+			stopButton.addClickListener(event -> {
+				stopDialog.open();
+			});
+			hl.add(stopButton);
+		}
 
 		if (app.appType == AppType.PUBLICRESULTS) {
 			showSharedKey(publicResultsSection);
@@ -376,13 +461,13 @@ public class AppsView extends VerticalLayout {
 		NativeLabel label1 = new NativeLabel("Shared Key");
 		label1.setWidth(LEFT_LABEL_WIDTH);
 		Html sharedKeyExplanation1 = new Html(
-		        """
-		        <div style="margin-bottom:0; width: 45em">
-		        	<div>
-		        		<em>YOU NEED TO SET THE SHARED KEY ONCE, when both owlcms and publicresults are present.</em>
-		        	</div>
-		        </div>
-		        """);
+				"""
+						<div style="margin-bottom:0; width: 45em">
+							<div>
+								<em>YOU NEED TO SET THE SHARED KEY ONCE, when both owlcms and publicresults are present.</em>
+							</div>
+						</div>
+						""");
 		hl1.add(label1, sharedKeyExplanation1);
 
 		HorizontalLayout hl2 = new HorizontalLayout();
@@ -394,14 +479,14 @@ public class AppsView extends VerticalLayout {
 		sharedKeyField.setWidth("15em");
 		sharedKeyField.setValue(generateRandomString(20));
 		Button sharedKeyButton = new Button("Set Shared Key and restart apps",
-		        e -> {
-			        if (sharedKeyField.getValue() == null || sharedKeyField.getValue().isBlank()) {
-				        sharedKeyField.setErrorMessage("The shared key cannot be empty");
-				        sharedKeyField.setInvalid(true);
-			        } else {
-				        flyCommands.doSetSharedKey(sharedKeyField.getValue());
-			        }
-		        });
+				e -> {
+					if (sharedKeyField.getValue() == null || sharedKeyField.getValue().isBlank()) {
+						sharedKeyField.setErrorMessage("The shared key cannot be empty");
+						sharedKeyField.setInvalid(true);
+					} else {
+						flyCommands.doSetSharedKey(sharedKeyField.getValue());
+					}
+				});
 		hl2.add(label2, sharedKeyField, sharedKeyButton);
 
 		HorizontalLayout hl3 = new HorizontalLayout();
@@ -416,21 +501,21 @@ public class AppsView extends VerticalLayout {
 		icon.getStyle().set("zoom", "90%");
 		clickHere.setAlignItems(Alignment.CENTER);
 		Html sharedKeyExplanation4 = new Html(
-		        """
-		        <div>
-		        	<ul style="margin:0; width: 45em">
-		        		<li>
-		        		    The shared key is a value that is exchanged between owlcms and publicresults so they can trust one another.
-		        		</li>
-		        		<li>
-		        			Setting the shared key is only needed once, when you first connect the programs together.
-		        		</li>
-		        		<li>
-		        			You do <em>not</em> need to set the key again after updating or restarting the applications.
-		        		</li>
-		        	</ul>
-		        </div>
-		        """);
+				"""
+						<div>
+							<ul style="margin:0; width: 45em">
+								<li>
+								    The shared key is a value that is exchanged between owlcms and publicresults so they can trust one another.
+								</li>
+								<li>
+									Setting the shared key is only needed once, when you first connect the programs together.
+								</li>
+								<li>
+									You do <em>not</em> need to set the key again after updating or restarting the applications.
+								</li>
+							</ul>
+						</div>
+						""");
 		hl3.add(label3, new Details(clickHere, sharedKeyExplanation4));
 
 		hl2.getStyle().set("margin-top", "1em");
@@ -448,7 +533,7 @@ public class AppsView extends VerticalLayout {
 			showOwlcmsApp = showApplication(owlcmsApp);
 			apps.add(showOwlcmsApp);
 		} else {
-			owlcmsApp = new App("", AppType.OWLCMS, getCurrentRegion(), "stable");
+			owlcmsApp = new App("", AppType.OWLCMS, getCurrentRegion(), "stable", null, null);
 			String v = owlcmsApp.getReferenceVersion();
 			owlcmsApp.setVersionInfo(new VersionInfo(v));
 			showOwlcmsApp = showApplication(owlcmsApp);
@@ -460,7 +545,7 @@ public class AppsView extends VerticalLayout {
 			showPublicApp = showApplication(publicApp);
 			apps.add(showPublicApp);
 		} else {
-			publicApp = new App("", AppType.PUBLICRESULTS, getCurrentRegion(), "stable");
+			publicApp = new App("", AppType.PUBLICRESULTS, getCurrentRegion(), "stable", null, null);
 			String v = publicApp.getReferenceVersion();
 			publicApp.setVersionInfo(new VersionInfo(v));
 			showPublicApp = showApplication(publicApp);
