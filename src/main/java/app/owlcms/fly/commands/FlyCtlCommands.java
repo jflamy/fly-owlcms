@@ -73,9 +73,9 @@ public class FlyCtlCommands {
 		doAppCommand(app, "fly apps restart --skip-health-checks " + app.name, null);
 	}
 
-	public void appSharedSecret(App app) {
-		doAppCommand(app, app.appType.create, null);
-	}
+	// private void appSharedSecret(App app) {
+	// 	doAppCommand(app, app.appType.create, null);
+	// }
 
 	String creationError;
 
