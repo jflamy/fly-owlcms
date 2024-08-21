@@ -157,7 +157,7 @@ public class FlyCtlCommands {
 						logger.error("token {}", string);
 						tokenStatus = -1;
 					};
-					String commandString = "fly auth token";
+					String commandString = "fly auth token -q";
 					// last argument is null because we don't want to provide a token
 					// since we are fetching one
 					runCommand("retrieving token from config ", commandString, outputConsumer, errorConsumer, false,
