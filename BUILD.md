@@ -12,5 +12,6 @@ The production build and deploy of this application is done using the fly CLI.
 
 For development, the application is like all the other owlcms apps, but must run on Linux
 
-- If running on Windows, open VS Code.  At the bottom left, choose the option to run code remotely on WSL
-- Run the `app.owlcms.fly.Main` class.
+- If running on Windows, open a WSL window and go to the git repository
+  - run `code .` to start VSCode (at the bottom left you should see it is running on WSL)
+  - Run the `app.owlcms.fly.Main` class.

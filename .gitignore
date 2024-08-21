@@ -28,3 +28,6 @@ webpack.generated.js
 fly.toml
 logs/owlcms.log
 /logs/
+out.err
+out.txt
+string.txt
