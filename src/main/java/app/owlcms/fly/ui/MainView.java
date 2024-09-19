@@ -142,7 +142,7 @@ public class MainView extends VerticalLayout {
 		mapContainer.add(map);
 		Html mapDescription = new Html("""
 			<div style="width: 950px">
-				Current users of owlcms. Gathering of usage data started Jan 01 2023.
+				Current users of owlcms. Usage representative of last 6 months from locations with Internet access.
 			</div>
 			""");
 		mapDescription.getStyle().set("margin-top", "0em");
