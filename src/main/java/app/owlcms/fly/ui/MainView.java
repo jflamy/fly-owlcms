@@ -76,7 +76,7 @@ public class MainView extends VerticalLayout {
 		                		<li>
 		                			<a href='./apps'><span style="border:solid; border-width: 1px; padding: 2px;">Login</span></a>
 		                			and follow these <a style="text-decoration:underline" target="_blank" href="https://owlcms.github.io/owlcms4/#/Fly?id=create-publicresults">instructions</a>
-		                			to create a free cloud server that will make your competition results available LIVE, with no delays.
+		                			to create a cloud server that will make your competition results available LIVE, with no delays.
 		                			To anyone in the world with internet access, on a phone, tablet, or laptop.
 		                		</li>
 		                		<li>
@@ -98,7 +98,7 @@ public class MainView extends VerticalLayout {
 					<div>
 						You create a small user account with a cloud provider called <a style="text-decoration:underline" href="https://fly.io" target="_blank">fly.io</a>, and this application does the work of setting up
 						your owlcms applications there.  Each account has a free provision each month, and owlcms uses about half of that, so
-						it is free.
+						it is, in practice, free.  You can delete the application as soon as the competition is done to be completely certain.
 					</div>
 		        </div>
 		        """);
@@ -133,16 +133,17 @@ public class MainView extends VerticalLayout {
 		mapContainer.setHeight("650px");
 		mapContainer.getStyle().set("overflow", "hidden");
 		IFrame map = new IFrame(
-		        "https://www.google.com/maps/d/embed?mid=1cFqfyfoF_RSoM56GewSPDWbuoHihsw4&ehbc=2E312F&z=2");
+				"https://umap.openstreetmap.fr/en/map/owlcms_1117782#2/15.88/21.80?scaleControl=false&miniMap=false&scrollWheelZoom=false&zoomControl=true&editMode=disabled&moreControl=true&searchControl=null&tilelayersControl=null&embedControl=null&datalayersControl=true&onLoadPanel=none&captionBar=false&captionMenus=true");
 		map.setWidth("1000px");
 		map.setHeight("733px");
+		map.getElement().setAttribute("allowfullscreen", true);
 		map.getStyle().set("position", "relative");
-		map.getStyle().set("top", "-70px");
-		map.getStyle().set("left", "-5px");
+//		map.getStyle().set("top", "-70px");
+//		map.getStyle().set("left", "-5px");
 		mapContainer.add(map);
 		Html mapDescription = new Html("""
 			<div style="width: 950px">
-				Current users of owlcms. Usage representative of last 6 months from locations with Internet access.
+				Interactive map of locations with internet access where owlcms has been used in the last 6 months. Big circles are clickable and represent clusters of locations.
 			</div>
 			""");
 		mapDescription.getStyle().set("margin-top", "0em");
