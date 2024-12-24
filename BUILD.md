@@ -3,14 +3,16 @@
 The production build and deploy of this application is done using the fly CLI.
 
 - `fly auth login` to select the account to which deployment will take place
+- Go to the github repository and check what the new version number should be
 - edit `deploy.sh` to confirm the application name
   - if `--local-only` is present, start local Docker
   - for a remote build, remove `--local-only`
 
-- run `deploy.sh`
+- run `deploy.sh` with the new version number as a argument
   - fly will notice the presence of a Dockerfile 
   - fly will use the Docker file to build the application on a remote docker serve
   - fly will deploy the application under the name indicated in deploy.sh
+- Go to the github repository and create a release with the new tag
 
 For development, the application is like all the other owlcms apps, but must run on Linux
 
