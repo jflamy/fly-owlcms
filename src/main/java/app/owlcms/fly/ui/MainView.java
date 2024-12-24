@@ -133,7 +133,7 @@ public class MainView extends VerticalLayout {
 		mapContainer.setHeight("650px");
 		mapContainer.getStyle().set("overflow", "hidden");
 		IFrame map = new IFrame(
-				"https://umap.openstreetmap.fr/en/map/owlcms_1156248#2/15.88/21.80?scaleControl=false&miniMap=false&scrollWheelZoom=false&zoomControl=true&editMode=disabled&moreControl=true&searchControl=null&tilelayersControl=null&embedControl=null&datalayersControl=true&onLoadPanel=none&captionBar=false&captionMenus=true");
+				"https://umap.openstreetmap.fr/en/map/owlcms-cities_1156248#3/30.22/-37.27?scaleControl=false&miniMap=false&scrollWheelZoom=false&zoomControl=true&editMode=disabled&moreControl=true&searchControl=null&tilelayersControl=null&embedControl=null&datalayersControl=true&onLoadPanel=none&captionBar=false&captionMenus=true");
 		map.setWidth("1000px");
 		map.setHeight("733px");
 		map.getElement().setAttribute("allowfullscreen", true);
