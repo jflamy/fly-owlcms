@@ -143,7 +143,7 @@ public class MainView extends VerticalLayout {
 		mapContainer.add(map);
 		Html mapDescription = new Html("""
 			<div style="width: 950px">
-				Interactive map of locations with internet access where owlcms has been used in the last 6 months. Big circles are clickable and represent clusters of locations.
+				Interactive map of cities where owlcms has signalled usage in the last 6 months.
 			</div>
 			""");
 		mapDescription.getStyle().set("margin-top", "0em");
