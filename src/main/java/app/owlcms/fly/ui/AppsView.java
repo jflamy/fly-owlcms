@@ -1,12 +1,21 @@
 package app.owlcms.fly.ui;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.vdurmont.semver4j.Semver;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
@@ -390,7 +399,8 @@ public class AppsView extends VerticalLayout {
 		a.getStyle().set("text-decoration", "underline");
 		String currentVersion = app.getCurrentVersion();
 		currentVersion = currentVersion + (currentVersion.matches("^[0-9].*$") ? "" : " (version number unknown)");
-		boolean updateRequired = app.isUpdateRequired();
+		String latestVersion = getLatestReleaseVersion();
+		boolean updateRequired = !currentVersion.equals(latestVersion);
 		VerticalLayout versionInfo = new VerticalLayout(a,
 				new Html(
 						"""
@@ -398,7 +408,7 @@ public class AppsView extends VerticalLayout {
 								"""
 								.formatted(
 										currentVersion,
-										app.getReferenceVersion(),
+										latestVersion,
 										updateRequired ? " Please Update" : "",
 										app.regionCode)));
 		versionInfo.setMargin(false);
@@ -572,5 +582,42 @@ public class AppsView extends VerticalLayout {
 		}
 
 		return stringBuilder.toString();
+	}
+
+	private String getLatestReleaseVersion() {
+		try {
+			URL url = new URL("https://api.github.com/repos/owlcms/owlcms4/releases");
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
+
+			if (conn.getResponseCode() != 200) {
+				throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
+			}
+
+			Scanner scanner = new Scanner(url.openStream());
+			String inline = "";
+			while (scanner.hasNext()) {
+				inline += scanner.nextLine();
+			}
+			scanner.close();
+
+			JsonParser parser = new JsonParser();
+			List<JsonObject> releases = new ArrayList<>();
+			parser.parse(inline).getAsJsonArray().forEach(jsonElement -> releases.add(jsonElement.getAsJsonObject()));
+
+			List<Semver> versions = new ArrayList<>();
+			for (JsonObject release : releases) {
+				String tagName = release.get("tag_name").getAsString();
+				versions.add(new Semver(tagName));
+			}
+
+			Collections.sort(versions, Comparator.reverseOrder());
+			return versions.get(0).getValue();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			return "unknown";
+		}
 	}
 }

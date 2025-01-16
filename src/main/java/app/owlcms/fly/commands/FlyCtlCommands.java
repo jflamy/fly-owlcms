@@ -25,6 +25,7 @@ import app.owlcms.fly.flydata.App;
 import app.owlcms.fly.flydata.AppType;
 import app.owlcms.fly.flydata.EarthLocation;
 import app.owlcms.fly.ui.ExecArea;
+import app.owlcms.fly.utils.LoggerUtils;
 
 public class FlyCtlCommands {
 	int appNameStatus;
@@ -48,7 +49,6 @@ public class FlyCtlCommands {
 
 	public void appDeploy(App app, Runnable callback) {
 		String referenceVersion = app.getReferenceVersion();
-		logger.warn("reference version for app {}={}", app);
 		doAppCommand(app,
 				"fly deploy --app " + app.name + " --image " + app.appType.image + ":" + referenceVersion
 						+ " --ha=false",
@@ -127,7 +127,6 @@ public class FlyCtlCommands {
 					if (otp != null) {
 						loginString = loginString + " --otp " + otp;
 					}
-					logger.warn("login string {}", loginString);
 					Consumer<String> outputConsumer = (string) -> {
 						logger.info("login {}", string);
 					};
@@ -367,7 +366,7 @@ public class FlyCtlCommands {
 				Consumer<String> errorConsumer = (string) -> {
 					execArea.appendError(string, ui);
 				};
-				runCommand("=========== running command {}", commandString, outputConsumer, errorConsumer, builder,
+				runCommand("**** running command {}", commandString, outputConsumer, errorConsumer, builder,
 						callback);
 				Thread.sleep(5000);
 				ui.access(() -> execArea.setVisible(false));
