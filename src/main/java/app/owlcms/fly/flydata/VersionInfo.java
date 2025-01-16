@@ -31,7 +31,7 @@ public class VersionInfo {
 
 	public void updateReferenceVersionString(boolean preRelease) {
 		String apiUrl = "https://api.github.com/repos/owlcms/owlcms4/releases";
-		this.referenceVersionString = fetchLatestReleaseVersion(apiUrl);
+		this.referenceVersionString = fastFetchLatestReleaseVersion(apiUrl);
 
 		if (!"latest".equals(currentVersionString)) {
 			ComparableVersion currentVersion = new ComparableVersion(this.currentVersionString);
@@ -62,7 +62,7 @@ public class VersionInfo {
 		return currentVersionString;
 	}
 
-	public static String fetchLatestReleaseVersion(String apiUrl) {
+	public static String fullFetchLatestReleaseVersion(String apiUrl) {
 		long now = System.currentTimeMillis();
 		try {
 			URL url = new URL(apiUrl);
@@ -92,8 +92,40 @@ public class VersionInfo {
 			}
 
 			Collections.sort(versions, Comparator.reverseOrder());
-			logger.info("fetchLatestReleaseVersion took {} ms", System.currentTimeMillis() - now);
+			logger.info("fullFetchLatestReleaseVersion took {} ms", System.currentTimeMillis() - now);
 			return versions.get(0).getValue();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			return "unknown";
+		}
+	}
+
+	public static String fastFetchLatestReleaseVersion(String apiUrl) {
+		long now = System.currentTimeMillis();
+		try {
+			URL url = new URL(apiUrl + "/latest");
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
+
+			if (conn.getResponseCode() != 200) {
+				throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
+			}
+
+			Scanner scanner = new Scanner(url.openStream());
+			String inline = "";
+			while (scanner.hasNext()) {
+				inline += scanner.nextLine();
+			}
+			scanner.close();
+
+			JsonParser parser = new JsonParser();
+			JsonObject release = parser.parse(inline).getAsJsonObject();
+			String latestVersion = release.get("tag_name").getAsString();
+
+			logger.info("fastFetchLatestReleaseVersion took {} ms", System.currentTimeMillis() - now);
+			return latestVersion;
 
 		} catch (IOException e) {
 			e.printStackTrace();

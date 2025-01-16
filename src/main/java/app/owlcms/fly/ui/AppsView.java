@@ -576,6 +576,6 @@ public class AppsView extends VerticalLayout {
 	}
 
 	private String getLatestReleaseVersion() {
-		return VersionInfo.fetchLatestReleaseVersion("https://api.github.com/repos/owlcms/owlcms4/releases");
+		return VersionInfo.fastFetchLatestReleaseVersion("https://api.github.com/repos/owlcms/owlcms4/releases");
 	}
 }
