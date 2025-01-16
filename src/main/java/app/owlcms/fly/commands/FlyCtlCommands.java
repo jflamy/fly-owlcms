@@ -25,7 +25,6 @@ import app.owlcms.fly.flydata.App;
 import app.owlcms.fly.flydata.AppType;
 import app.owlcms.fly.flydata.EarthLocation;
 import app.owlcms.fly.ui.ExecArea;
-import app.owlcms.fly.utils.LoggerUtils;
 
 public class FlyCtlCommands {
 	int appNameStatus;

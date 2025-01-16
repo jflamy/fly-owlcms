@@ -1,14 +1,8 @@
 package app.owlcms.fly.flydata;
 
-import app.owlcms.fly.utils.LoggerUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-
-
 public class App implements Comparable<App> {
 
-    private static final Logger logger=LoggerFactory.getLogger(App.class);
+    // private static final Logger logger=LoggerFactory.getLogger(App.class);
     public AppType appType;
     public String name;
     public boolean created;
