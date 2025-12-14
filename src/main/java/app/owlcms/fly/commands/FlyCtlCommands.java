@@ -186,8 +186,8 @@ public class FlyCtlCommands {
 		execArea.setVisible(true);
 		new Thread(() -> {
 			execArea.clear(ui);
-			for (App app : appMap.values()) {
-				if (app.appType != AppType.OWLCMS && app.appType != AppType.PUBLICRESULTS) {
+				for (App app : appMap.values()) {
+				if (app.appType != AppType.OWLCMS && app.appType != AppType.PUBLICRESULTS && app.appType != AppType.TRACKER) {
 					continue;
 				}
 				try {
@@ -205,21 +205,38 @@ public class FlyCtlCommands {
 					e.printStackTrace();
 				}
 
-				// connect OWLCMS to PUBLICRESULTS
+				// connect OWLCMS to PUBLICRESULTS and TRACKER
 				if (app.appType == AppType.OWLCMS) {
 					try {
 						App pr = appMap.get(AppType.PUBLICRESULTS);
-						String name = "https://" + pr.name + ".fly.dev";
-						hostNameStatus = 0;
-						String commandString = "fly secrets set OWLCMS_REMOTE='" + name + "' --app " + app.name;
-						Consumer<String> outputConsumer = (string) -> {
-							execArea.append(string, ui);
-						};
-						Consumer<String> errorConsumer = (string) -> {
-							hostNameStatus = -1;
-							execArea.appendError(string, ui);
-						};
-						runCommand("setting secret {}", commandString, outputConsumer, errorConsumer, true, null);
+						if (pr != null) {
+							String name = "https://" + pr.name + ".fly.dev";
+							hostNameStatus = 0;
+							String commandString = "fly secrets set OWLCMS_REMOTE='" + name + "' --app " + app.name;
+							Consumer<String> outputConsumer = (string) -> {
+								execArea.append(string, ui);
+							};
+							Consumer<String> errorConsumer = (string) -> {
+								hostNameStatus = -1;
+								execArea.appendError(string, ui);
+							};
+							runCommand("setting secret {}", commandString, outputConsumer, errorConsumer, true, null);
+						}
+
+						App tr = appMap.get(AppType.TRACKER);
+						if (tr != null) {
+							String tname = "https://" + tr.name + ".fly.dev";
+							hostNameStatus = 0;
+							String commandString2 = "fly secrets set OWLCMS_TRACKER_REMOTE='" + tname + "' --app " + app.name;
+							Consumer<String> outputConsumer2 = (string) -> {
+								execArea.append(string, ui);
+							};
+							Consumer<String> errorConsumer2 = (string) -> {
+								hostNameStatus = -1;
+								execArea.appendError(string, ui);
+							};
+							runCommand("setting secret {}", commandString2, outputConsumer2, errorConsumer2, true, null);
+						}
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
