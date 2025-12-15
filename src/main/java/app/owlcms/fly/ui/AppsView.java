@@ -306,14 +306,9 @@ public class AppsView extends VerticalLayout {
 		contentDiv.setPadding(false);
 		contentDiv.setSpacing(false);
 		
-		// Explanation
+		// Explanation (add directly, avoid nested VerticalLayout)
 		Html explanation = new Html(getExplanationForAppType(app.appType));
-		VerticalLayout explanationLayout = new VerticalLayout(explanation);
-		explanationLayout.setMargin(false);
-		explanationLayout.setPadding(false);
-		explanationLayout.setSpacing(false);
-		explanationLayout.getStyle().set("margin-bottom", "1em");
-		contentDiv.add(explanationLayout);
+		contentDiv.add(explanation);
 		
 		UI ui = UI.getCurrent();
 		
@@ -350,7 +345,7 @@ public class AppsView extends VerticalLayout {
 				    """;
 			case TRACKER -> """
 					<div style="line-height: 1.4; width: 45em;">
-					TRACKER is the next generation of PUBLICRESULTS, and will eventually replace it.<br><u>You don't need TRACKER if you don't want remote scoreboards.</u> If you set a Shared Key below, TRACKER will be protected in its communications with OWLCMS.
+					TRACKER is used to view scoreboards on phones (any device connected to the internet). TRACKER is the next generation of PUBLICRESULTS, and is currently in preview mode.<br><u>You don't need TRACKER if you don't want remote scoreboards.</u> If you set a Shared Key below, TRACKER will be protected in its communications with OWLCMS.
 					""";
 			default -> "";
 		};
@@ -358,17 +353,16 @@ public class AppsView extends VerticalLayout {
 
 	private void showNewApplication(App app, VerticalLayout contentDiv, HorizontalLayout hl, UI ui) {
 		String latestVersion = app.getReferenceVersion();
-		VerticalLayout versionInfo = new VerticalLayout(
-				new Html(
-						"""
-								<div>latest available version: %s</div>
-								"""
-								.formatted(latestVersion)));
-		versionInfo.setMargin(false);
-		versionInfo.setPadding(false);
-		versionInfo.setSpacing(false);
-		versionInfo.setWidth("20em");
-		versionInfo.getStyle().set("margin-bottom", "1em");
+		// Version info (use Div to avoid nested VerticalLayout)
+		Html versionHtml = new Html(
+			"""
+				<div>latest available version: %s</div>
+				""".formatted(latestVersion));
+		Div versionInfo = new Div();
+		versionInfo.add(versionHtml);
+		versionInfo.getStyle().set("width", "20em");
+		versionInfo.getStyle().set("margin-top", "0.1em");
+		versionInfo.getStyle().set("margin-bottom", "0.1em");
 		contentDiv.add(versionInfo);
 		
 		TextField nameField = new TextField("Application Name (without .fly.dev)");
@@ -425,6 +419,9 @@ public class AppsView extends VerticalLayout {
 	}
 
 	private void showExistingApplication(App app, HorizontalLayout hl, UI ui) {
+		// Mark this controls block for existing apps so we can style it via CSS
+		hl.addClassName("existingApp");
+		hl.getStyle().set("margin-top", "1em");
 		Anchor a = new Anchor("https://" + app.name + ".fly.dev", app.name + ".fly.dev", AnchorTarget.BLANK);
 		a.getStyle().set("text-decoration", "underline");
 		String rawVersion = app.getCurrentVersion();
@@ -508,20 +505,15 @@ public class AppsView extends VerticalLayout {
 		contentDiv.setPadding(false);
 		contentDiv.setSpacing(false);
 		
-		// Explanation
+		// Explanation (add directly, avoid nested VerticalLayout)
 		Html explanation = new Html(
-				"""
-				<div style="line-height: 1.4; width: 45em;">
-				Set the shared key to protect communications from OWLCMS to the other applications. You need to share it once but can change it whenever you want.
-				If OWLCMS is running on a laptop, copy the key to the Connections configuration in the OWLCMS settings.
-				</div>
-				""");
-		VerticalLayout explanationLayout = new VerticalLayout(explanation);
-		explanationLayout.setMargin(false);
-		explanationLayout.setPadding(false);
-		explanationLayout.setSpacing(false);
-		explanationLayout.getStyle().set("margin-bottom", "1em");
-		contentDiv.add(explanationLayout);
+			"""
+			<div style="line-height: 1.4; width: 45em;">
+			Set the shared key to protect communications from OWLCMS to the other applications. You need to share it once but can change it whenever you want.
+			If OWLCMS is running on a laptop, copy the key to the Connections configuration in the OWLCMS settings.
+			</div>
+			""");
+		contentDiv.add(explanation);
 		
 		// Controls row
 		HorizontalLayout controlsLayout = new HorizontalLayout();
