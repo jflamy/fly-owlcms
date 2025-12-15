@@ -334,23 +334,24 @@ public class AppsView extends VerticalLayout {
 	private String getExplanationForAppType(AppType appType) {
 		return switch(appType) {
 			    case OWLCMS -> """
-				    <div style="line-height: 1.4; width: 45em;">
-				    OWLCMS runs the competition.<br><u>You don't need to create this if you are running OWLCMS locally on a laptop</u> and only want remote scoreboards.
-				    </div>
+				    <ul style="line-height: 1.4; width: 45em; margin: 0; padding-left: 1em;">
+				    <li>OWLCMS runs the competition.
+					<li><u>You don't need to create this if you are running OWLCMS locally on a laptop</u> and only want remote scoreboards.
+				    </ul>
 				    """;
 			    case PUBLICRESULTS -> """
-				    <div style="line-height: 1.4; width: 45em;">
-				    PUBLICRESULTS is used to view scoreboards on phones (any device connected to the internet).
-					<br><u>You don't need PUBLICRESULTS if you don't want remote scoreboards.</u>
-					<br>The Shared Key set at the bottom of this page protects the communications between OWLCMS and PUBLICRESULTS.
-				    </div>
+				    <ul style="line-height: 1.4; width: 45em; margin: 0; padding-left: 1em;">
+				    <li>PUBLICRESULTS is used to view scoreboards on phones (any device connected to the internet).
+					<li><u>You don't need PUBLICRESULTS if you don't want remote scoreboards.</u>
+					<li>The Shared Key set at the bottom of this page protects the communications between OWLCMS and PUBLICRESULTS.
+				    </ul>
 				    """;
 			case TRACKER -> """
-					<div style="line-height: 1.4; width: 45em;">
-					TRACKER is used to view scoreboards on phones (any device connected to the internet), to provide real-time video overlays, and to produce fancy documents. TRACKER is the next generation of PUBLICRESULTS, and is currently in preview mode.
-					<br><u>You don't need TRACKER if you don't want remote scoreboards.</u> 
-					<br>The Shared Key set at the bottom of this page protects the communications between OWLCMS and TRACKER.
-				    </div>
+					<ul style="line-height: 1.4; width: 45em; margin: 0; padding-left: 1em;">
+					<li>TRACKER is used to view scoreboards on phones (any device connected to the internet), to provide real-time video overlays, and to produce fancy documents. TRACKER is the next generation of PUBLICRESULTS, and is currently in preview mode.
+					<li><u>You don't need TRACKER if you don't want remote scoreboards.</u> 
+					<li>The Shared Key set at the bottom of this page protects the communications between OWLCMS and TRACKER.
+				    </ul>
 					""";
 			default -> "";
 		};
@@ -513,13 +514,12 @@ public class AppsView extends VerticalLayout {
 		// Explanation (add directly, avoid nested VerticalLayout)
 		Html explanation = new Html(
 			"""
-			<div style="line-height: 1.4; width: 45em;">
-			Set the shared key to protect communications from OWLCMS to the other applications.
-			This is done once initially, and the same key is used for both PUBLICRESULTS and TRACKER.
-			You can change it later, but you will need to restart the applications.
-			<br />
-			NOTE: If OWLCMS is running on a laptop, copy the key to the Connections configuration in the OWLCMS settings.
-			</div>
+			<ul style="line-height: 1.4; width: 45em; margin: 0; padding-left: 1em;">
+			<li>Set the shared key to protect communications from OWLCMS to the other applications.
+			<li>This is done once initially, and the same key is used for both PUBLICRESULTS and TRACKER.
+			<li>You can change it later, but you will need to restart the applications.
+			<li><u>If OWLCMS is running on a laptop</u>, copy the key to the Connections configuration in the OWLCMS settings.
+			</ul>
 			""");
 		contentDiv.add(explanation);
 		
