@@ -186,8 +186,8 @@ public class FlyCtlCommands {
 		execArea.setVisible(true);
 		new Thread(() -> {
 			execArea.clear(ui);
-			for (App app : appMap.values()) {
-				if (app.appType != AppType.OWLCMS && app.appType != AppType.PUBLICRESULTS) {
+				for (App app : appMap.values()) {
+				if (app.appType != AppType.OWLCMS && app.appType != AppType.PUBLICRESULTS && app.appType != AppType.TRACKER) {
 					continue;
 				}
 				try {
@@ -205,7 +205,7 @@ public class FlyCtlCommands {
 					e.printStackTrace();
 				}
 
-				// connect OWLCMS to PUBLICRESULTS
+				// connect OWLCMS to PUBLICRESULTS and TRACKER
 				if (app.appType == AppType.OWLCMS) {
 					try {
 						App pr = appMap.get(AppType.PUBLICRESULTS);
