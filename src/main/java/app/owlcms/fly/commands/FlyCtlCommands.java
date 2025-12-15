@@ -418,7 +418,7 @@ public class FlyCtlCommands {
 		List<EarthLocation> locations = new ArrayList<>();
 		appNameStatus = 0;
 		try {
-			String commandString = "flyctl platform regions --json | jq -r '.[] | select(.RequiresPaidPlan == false) | [.Name, .Code, .Latitude, .Longitude] | @tsv'";
+			String commandString = "flyctl platform regions --json | jq -r '.[] | select(.requires_paid_plan == false) | [.name, .code, .latitude, .longitude] | @tsv'";
 			Consumer<String> outputConsumer = (string) -> {
 				String[] values = string.split("\t");
 				locations.add(new EarthLocation(values[0], values[1], Double.parseDouble(values[2]),

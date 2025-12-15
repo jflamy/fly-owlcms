@@ -7,7 +7,7 @@ app = "$FLY_APP"
 primary_region = "$REGION"
 
 [build]
-  image = "owlcms/publicresults:$VERSION"
+  image = "owlcms/tracker:$VERSION"
 
 [http_service]
   internal_port = 8096
@@ -40,3 +40,10 @@ primary_region = "$REGION"
   cpu_kind = "shared"
   cpus = 2
   memory_mb = 1024
+
+[[http_service.checks]]
+  grace_period = "30s"
+  interval = "30s"
+  method = "GET"
+  path = "/"
+  timeout = "10s"
