@@ -220,6 +220,17 @@ public class FlyCtlCommands {
 							execArea.appendError(string, ui);
 						};
 						runCommand("setting secret {}", commandString, outputConsumer, errorConsumer, true, null);
+
+						// if TRACKER exists, set OWLCMS_VIDEODATA to wss://{tracker}.fly.dev/ws
+						App tracker = appMap.get(AppType.TRACKER);
+						if (tracker != null && tracker.name != null && !tracker.name.isBlank()) {
+							String wssUrl = "wss://" + tracker.name + ".fly.dev/ws";
+							hostNameStatus = 0;
+							String vdCommand = "fly secrets set OWLCMS_VIDEODATA='" + wssUrl + "' --app " + app.name;
+							Consumer<String> vdOut = (string) -> execArea.append(string, ui);
+							Consumer<String> vdErr = (string) -> { hostNameStatus = -1; execArea.appendError(string, ui); };
+							runCommand("setting secret {}", vdCommand, vdOut, vdErr, true, null);
+						}
 					} catch (Exception e) {
 						e.printStackTrace();
 					}

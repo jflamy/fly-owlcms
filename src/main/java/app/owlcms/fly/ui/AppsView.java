@@ -8,21 +8,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vaadin.flow.component.Html;
-import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
-import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.AnchorTarget;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.NativeLabel;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -50,7 +46,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @Route("apps")
 public class AppsView extends VerticalLayout {
 
-	private static final String LEFT_LABEL_WIDTH = "10em";
+	private static final String LEFT_LABEL_WIDTH = "14em";
 	private long lastClick = 0;
 	@SuppressWarnings("unused")
 	final private Logger logger = LoggerFactory.getLogger(AppsView.class);
@@ -227,25 +223,10 @@ public class AppsView extends VerticalLayout {
 	private VerticalLayout buildIntro() {
 		Html p1 = new Html(
 				"""
-						   <div style="width: 60em">
-						   This page creates and manages your owlcms applications on the fly.io cloud.
-						          <ul style="margin-top: 0">
-						          	<li>
-						                 	Scenario 1: <b>owlcms in the cloud</b>: create only owlcms, no need to create a publicresults
-						              </li>
-						          	<li>
-						                 	Scenario 2: <b>owlcms in the cloud, publicresults in the cloud</b>.
-						                 	1. Create both applications 2. set the shared key using this page.
-						              </li>
-						          	<li>Scenario 3: <b>owlcms at the competition site and publicresults in the cloud</b>:
-						   			1. Create only publicresults. 2. See
-						   			<a href='https://owlcms.github.io/owlcms4/#/Fly?id=connecting-an-on-site-owlcms-to-a-cloud-publicresults'
-						   			style='text-decoration:underline' target=_'blank'>Connecting an on-site owlcms to a cloud publicresults</a>.
-						3. Copy the key from owlcms and set it as the shared key.
-						   		</li>
-						   	</ul>
-						   </div>
-						   """);
+				<div style="width: 60em">
+				This page creates and manages your owlcms applications on the fly.io cloud.
+				</div>
+				""");
 		VerticalLayout intro = new VerticalLayout(p1);
 		intro.setSpacing(false);
 		intro.setPadding(false);
@@ -309,27 +290,87 @@ public class AppsView extends VerticalLayout {
 	}
 
 	private Div showApplication(App app) {
-		Div publicResultsSection = new Div();
-		HorizontalLayout hl = new HorizontalLayout();
-		hl.setMargin(false);
-		hl.setPadding(false);
-		publicResultsSection.add(hl);
-
-		hl.setAlignItems(Alignment.CENTER);
+		HorizontalLayout appSection = new HorizontalLayout();
+		appSection.setMargin(false);
+		appSection.setPadding(false);
+		appSection.setAlignItems(Alignment.START);
+		
+		// Left column: label
 		NativeLabel label = new NativeLabel(app.appType.toString());
 		label.setWidth(LEFT_LABEL_WIDTH);
-		hl.add(label);
+		appSection.add(label);
+		
+		// Right column: all content (explanation, version, controls)
+		VerticalLayout contentDiv = new VerticalLayout();
+		contentDiv.setMargin(false);
+		contentDiv.setPadding(false);
+		contentDiv.setSpacing(false);
+		
+		// Explanation
+		Html explanation = new Html(getExplanationForAppType(app.appType));
+		VerticalLayout explanationLayout = new VerticalLayout(explanation);
+		explanationLayout.setMargin(false);
+		explanationLayout.setPadding(false);
+		explanationLayout.setSpacing(false);
+		explanationLayout.getStyle().set("margin-bottom", "1em");
+		contentDiv.add(explanationLayout);
+		
 		UI ui = UI.getCurrent();
-
+		
+		// Details and controls row
+		HorizontalLayout controlsLayout = new HorizontalLayout();
+		controlsLayout.setMargin(false);
+		controlsLayout.setPadding(false);
+		controlsLayout.setAlignItems(Alignment.CENTER);
+		
 		if (app.created) {
-			showExistingApplication(app, publicResultsSection, hl, ui);
+			showExistingApplication(app, controlsLayout, ui);
+			contentDiv.add(controlsLayout);
 		} else {
-			showNewApplication(app, publicResultsSection, hl, ui);
+			showNewApplication(app, contentDiv, controlsLayout, ui);
 		}
-		return publicResultsSection;
+		appSection.add(contentDiv);
+		
+		Div wrapper = new Div(appSection);
+		wrapper.getStyle().set("margin-bottom", "0");
+		return wrapper;
+	}
+	
+	private String getExplanationForAppType(AppType appType) {
+		return switch(appType) {
+			    case OWLCMS -> """
+				    <div style="line-height: 1.4; width: 45em;">
+				    OWLCMS runs the competition.<br><u>You don't need to create this if you are running OWLCMS locally on a laptop</u> and only want remote scoreboards.
+				    </div>
+				    """;
+			    case PUBLICRESULTS -> """
+				    <div style="line-height: 1.4; width: 45em;">
+				    PUBLICRESULTS is used to view scoreboards on phones (any device connected to the internet).<br><u>You don't need PUBLICRESULTS if you don't want remote scoreboards.</u> Set a Shared Key below to protect communications between OWLCMS and PUBLICRESULTS.
+				    </div>
+				    """;
+			case TRACKER -> """
+					<div style="line-height: 1.4; width: 45em;">
+					TRACKER is the next generation of PUBLICRESULTS, and will eventually replace it.<br><u>You don't need TRACKER if you don't want remote scoreboards.</u> If you set a Shared Key below, TRACKER will be protected in its communications with OWLCMS.
+					""";
+			default -> "";
+		};
 	}
 
-	private void showNewApplication(App app, Div publicResultsSection, HorizontalLayout hl, UI ui) {
+	private void showNewApplication(App app, VerticalLayout contentDiv, HorizontalLayout hl, UI ui) {
+		String latestVersion = app.getReferenceVersion();
+		VerticalLayout versionInfo = new VerticalLayout(
+				new Html(
+						"""
+								<div>latest available version: %s</div>
+								"""
+								.formatted(latestVersion)));
+		versionInfo.setMargin(false);
+		versionInfo.setPadding(false);
+		versionInfo.setSpacing(false);
+		versionInfo.setWidth("20em");
+		versionInfo.getStyle().set("margin-bottom", "1em");
+		contentDiv.add(versionInfo);
+		
 		TextField nameField = new TextField("Application Name (without .fly.dev)");
 		nameField.setAllowedCharPattern("[A-Za-z0-9-]");
 		nameField.setValue(app.name);
@@ -380,25 +421,23 @@ public class AppsView extends VerticalLayout {
 					}
 				});
 		hl.add(serverCombo, creationButton);
-		publicResultsSection.add(hl);
-		hl.setAlignItems(Alignment.BASELINE);
-		publicResultsSection.getStyle().set("margin-top", "-1em");
+		contentDiv.add(hl);
 	}
 
-	private void showExistingApplication(App app, Div publicResultsSection, HorizontalLayout hl, UI ui) {
+	private void showExistingApplication(App app, HorizontalLayout hl, UI ui) {
 		Anchor a = new Anchor("https://" + app.name + ".fly.dev", app.name + ".fly.dev", AnchorTarget.BLANK);
 		a.getStyle().set("text-decoration", "underline");
-		String currentVersion = app.getCurrentVersion();
-		currentVersion = currentVersion + (currentVersion.matches("^[0-9].*$") ? "" : " (version number unknown)");
+		String rawVersion = app.getCurrentVersion();
+		String displayVersion = rawVersion + (rawVersion.matches("^[0-9].*$") ? "" : " (version number unknown)");
 		String latestVersion = getLatestReleaseVersion();
-		boolean updateRequired = !currentVersion.equals(latestVersion);
+		boolean updateRequired = !rawVersion.equals(latestVersion);
 		VerticalLayout versionInfo = new VerticalLayout(a,
 				new Html(
 						"""
 								<div>your version: %s<br />latest version: %s<span style="color:red">%s</span><br/> region: %s</div>
 								"""
 								.formatted(
-										currentVersion,
+										displayVersion,
 										latestVersion,
 										updateRequired ? " Please Update" : "",
 										app.regionCode)));
@@ -450,35 +489,57 @@ public class AppsView extends VerticalLayout {
 			});
 			hl.add(stopButton);
 		}
-
-		if (app.appType == AppType.PUBLICRESULTS) {
-			showSharedKey(publicResultsSection);
-		}
 	}
 
-	private void showSharedKey(Div publicResultsSection) {
-		HorizontalLayout hl1 = new HorizontalLayout();
-		hl1.setMargin(false);
-		NativeLabel label1 = new NativeLabel("Shared Key");
-		label1.setWidth(LEFT_LABEL_WIDTH);
-		Html sharedKeyExplanation1 = new Html(
+	private void showSharedKey(VerticalLayout apps) {
+		HorizontalLayout sharedKeySection = new HorizontalLayout();
+		sharedKeySection.setMargin(false);
+		sharedKeySection.setPadding(false);
+		sharedKeySection.setAlignItems(Alignment.START);
+		
+		// Left column: label
+		NativeLabel label = new NativeLabel("Shared Key");
+		label.setWidth(LEFT_LABEL_WIDTH);
+		sharedKeySection.add(label);
+		
+		// Right column: all content (explanation, controls)
+		VerticalLayout contentDiv = new VerticalLayout();
+		contentDiv.setMargin(false);
+		contentDiv.setPadding(false);
+		contentDiv.setSpacing(false);
+		
+		// Explanation
+		Html explanation = new Html(
 				"""
-						<div style="margin-bottom:0; width: 45em">
-							<div>
-								<em>YOU NEED TO SET THE SHARED KEY ONCE, when both owlcms and publicresults are present.</em>
-							</div>
-						</div>
-						""");
-		hl1.add(label1, sharedKeyExplanation1);
-
-		HorizontalLayout hl2 = new HorizontalLayout();
-		NativeLabel label2 = new NativeLabel("Shared Key");
-		label2.setWidth(LEFT_LABEL_WIDTH);
+				<div style="line-height: 1.4; width: 45em;">
+				Set the shared key to protect communications from OWLCMS to the other applications. You need to share it once but can change it whenever you want.
+				If OWLCMS is running on a laptop, copy the key to the Connections configuration in the OWLCMS settings.
+				</div>
+				""");
+		VerticalLayout explanationLayout = new VerticalLayout(explanation);
+		explanationLayout.setMargin(false);
+		explanationLayout.setPadding(false);
+		explanationLayout.setSpacing(false);
+		explanationLayout.getStyle().set("margin-bottom", "1em");
+		contentDiv.add(explanationLayout);
+		
+		// Controls row
+		HorizontalLayout controlsLayout = new HorizontalLayout();
+		controlsLayout.setMargin(false);
+		controlsLayout.setPadding(false);
+		controlsLayout.setAlignItems(Alignment.CENTER);
+		
 		TextField sharedKeyField = new TextField();
 		sharedKeyField.setTitle("Shared string between owlcms and public results");
 		sharedKeyField.setPlaceholder("enter a shared string");
 		sharedKeyField.setWidth("15em");
-		sharedKeyField.setValue(generateRandomString(20));
+		sharedKeyField.setValue("");
+		
+		Button generateKeyButton = new Button("Generate Shared Key",
+				e -> {
+					sharedKeyField.setValue(generateRandomString(20));
+				});
+		
 		Button sharedKeyButton = new Button("Set Shared Key and restart apps",
 				e -> {
 					if (sharedKeyField.getValue() == null || sharedKeyField.getValue().isBlank()) {
@@ -488,47 +549,23 @@ public class AppsView extends VerticalLayout {
 						flyCommands.doSetSharedKey(sharedKeyField.getValue());
 					}
 				});
-		hl2.add(label2, sharedKeyField, sharedKeyButton);
-
-		HorizontalLayout hl3 = new HorizontalLayout();
-		hl3.setMargin(false);
-		NativeLabel label3 = new NativeLabel("");
-		label3.setWidth(LEFT_LABEL_WIDTH);
-
-		Icon icon = VaadinIcon.QUESTION_CIRCLE_O.create();
-		HorizontalLayout clickHere = new HorizontalLayout(icon, new Text("\u00a0Click here for explanations."));
-		clickHere.getStyle().set("color", "slate");
-		clickHere.setSpacing(false);
-		icon.getStyle().set("zoom", "90%");
-		clickHere.setAlignItems(Alignment.CENTER);
-		Html sharedKeyExplanation4 = new Html(
-				"""
-						<div>
-							<ul style="margin:0; width: 45em">
-								<li>
-								    The shared key is a value that is exchanged between owlcms and publicresults so they can trust one another.
-								</li>
-								<li>
-									Setting the shared key is only needed once, when you first connect the programs together.
-								</li>
-								<li>
-									You do <em>not</em> need to set the key again after updating or restarting the applications.
-								</li>
-							</ul>
-						</div>
-						""");
-		hl3.add(label3, new Details(clickHere, sharedKeyExplanation4));
-
-		hl2.getStyle().set("margin-top", "1em");
-		publicResultsSection.add(hl2, hl3);
+		
+		controlsLayout.add(sharedKeyField, generateKeyButton, sharedKeyButton);
+		contentDiv.add(controlsLayout);
+		sharedKeySection.add(contentDiv);
+		
+		Div wrapper = new Div(sharedKeySection);
+		apps.add(wrapper);
 	}
 
 	private void showApps(Map<AppType, App> appMap, VerticalLayout apps) {
 		App owlcmsApp = appMap.get(AppType.OWLCMS);
 		App publicApp = appMap.get(AppType.PUBLICRESULTS);
+		App trackerApp = appMap.get(AppType.TRACKER);
 
 		// apps.getStyle().set("margin-top", "1em");
 		apps.add(new Hr());
+		
 		Div showOwlcmsApp;
 		if (owlcmsApp != null) {
 			showOwlcmsApp = showApplication(owlcmsApp);
@@ -542,6 +579,7 @@ public class AppsView extends VerticalLayout {
 		}
 		Div showPublicApp;
 		apps.add(new Hr());
+		
 		if (publicApp != null) {
 			showPublicApp = showApplication(publicApp);
 			apps.add(showPublicApp);
@@ -552,7 +590,22 @@ public class AppsView extends VerticalLayout {
 			showPublicApp = showApplication(publicApp);
 			apps.add(showPublicApp);
 		}
-		// showPublicApp.getStyle().set("margin-top", "0.5em");
+		Div showTrackerApp;
+		apps.add(new Hr());
+		
+		if (trackerApp != null) {
+			showTrackerApp = showApplication(trackerApp);
+			apps.add(showTrackerApp);
+		} else {
+			trackerApp = new App("", AppType.TRACKER, getCurrentRegion(), "stable", null, null);
+			trackerApp.setVersionInfo(new VersionInfo("stable", "https://api.github.com/repos/jflamy/owlcms-tracker/releases"));
+			showTrackerApp = showApplication(trackerApp);
+			apps.add(showTrackerApp);
+		}
+		
+		// Show shared key section after TRACKER
+		apps.add(new Hr());
+		showSharedKey(apps);
 	}
 
 	private String getCurrentRegion() {

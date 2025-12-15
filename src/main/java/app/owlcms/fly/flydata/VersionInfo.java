@@ -21,16 +21,21 @@ import ch.qos.logback.classic.Logger;
 public class VersionInfo {
 	private String referenceVersionString;
 	private String currentVersionString;
+	private String apiUrl;
 	final private static Logger logger = (Logger) LoggerFactory.getLogger(VersionInfo.class);
 	private Integer comparison;
 
 	public VersionInfo(String currentVersionString) {
+		this(currentVersionString, "https://api.github.com/repos/owlcms/owlcms4/releases");
+	}
+
+	public VersionInfo(String currentVersionString, String apiUrl) {
 		this.currentVersionString = currentVersionString;
+		this.apiUrl = apiUrl;
 		this.updateReferenceVersionString();
 	}
 
 	public void updateReferenceVersionString(boolean preRelease) {
-		String apiUrl = "https://api.github.com/repos/owlcms/owlcms4/releases";
 		this.referenceVersionString = fastFetchLatestReleaseVersion(apiUrl);
 
 		if (!"latest".equals(currentVersionString)) {
@@ -88,16 +93,28 @@ public class VersionInfo {
 			List<Semver> versions = new ArrayList<>();
 			for (JsonObject release : releases) {
 				String tagName = release.get("tag_name").getAsString();
-				versions.add(new Semver(tagName));
+				try {
+					versions.add(new Semver(tagName));
+				} catch (Exception e) {
+					logger.debug("Skipping invalid semver tag: {}", tagName);
+				}
+			}
+
+			if (versions.isEmpty()) {
+				logger.error("No valid semantic versions found in releases from {}", apiUrl);
+				return "unknown (error)";
 			}
 
 			Collections.sort(versions, Comparator.reverseOrder());
-			logger.info("fullFetchLatestReleaseVersion took {} ms", System.currentTimeMillis() - now);
+			logger.info("fullFetchLatestReleaseVersion took {} ms for {} valid versions", System.currentTimeMillis() - now, versions.size());
 			return versions.get(0).getValue();
 
 		} catch (IOException e) {
-			e.printStackTrace();
-			return "unknown";
+			logger.error("Error fetching latest release version from {}", apiUrl, e);
+			return "unknown (error)";
+		} catch (Exception e) {
+			logger.error("Unexpected error fetching latest release version from {}", apiUrl, e);
+			return "unknown (error)";
 		}
 	}
 
@@ -110,7 +127,8 @@ public class VersionInfo {
 			conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
 
 			if (conn.getResponseCode() != 200) {
-				throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
+				logger.debug("Failed to fetch /latest from {}, falling back to fullFetchLatestReleaseVersion", apiUrl);
+				return fullFetchLatestReleaseVersion(apiUrl);
 			}
 
 			Scanner scanner = new Scanner(url.openStream());
@@ -128,8 +146,11 @@ public class VersionInfo {
 			return latestVersion;
 
 		} catch (IOException e) {
-			e.printStackTrace();
-			return "unknown";
+			logger.debug("Error fetching /latest from {}, falling back to fullFetchLatestReleaseVersion: {}", apiUrl, e.getMessage());
+			return fullFetchLatestReleaseVersion(apiUrl);
+		} catch (Exception e) {
+			logger.debug("Unexpected error fetching /latest from {}, falling back to fullFetchLatestReleaseVersion: {}", apiUrl, e.getMessage());
+			return fullFetchLatestReleaseVersion(apiUrl);
 		}
 	}
 }

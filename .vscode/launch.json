@@ -15,7 +15,7 @@
             "name": "fly-owlcms",
             "request": "launch",
             "mainClass": "app.owlcms.fly.Main",
-            "vmArgs": "-Dserver.port=8084",
+            "vmArgs": "-Dserver.port=8084 -XX:+AllowEnhancedClassRedefinition -XX:HotswapAgent=fatjar -javaagent:/home/owlcms/.sdkman/candidates/java/current/lib/hotswap/hotswap-agent.jar",
             "projectName": "fly-manager"
         }
     ]

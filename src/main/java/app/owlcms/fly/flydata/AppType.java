@@ -6,6 +6,7 @@ import java.util.Map;
 public enum AppType {
     OWLCMS("owlcms/owlcms","scripts/createOwlcms.sh"),
     PUBLICRESULTS("owlcms/publicresults","scripts/createPublicResults.sh"),
+    TRACKER("owlcms/tracker","scripts/createTracker.sh"),
     DB("flyio/postgres-flex",null);
 
     public final String image;

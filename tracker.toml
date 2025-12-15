@@ -1,0 +1,42 @@
+# fly.toml app configuration file for owlcms tracker
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "$FLY_APP"
+primary_region = "$REGION"
+
+[build]
+  image = "owlcms/tracker:$VERSION"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[services.concurrency]
+  type = "requests"
+  hard_limit = 50
+  soft_limit = 40
+
+[http_service.concurrency]
+  type = "requests"
+  hard_limit = 50
+  soft_limit = 40
+
+[[services.ports]]
+  handlers = ["http"]
+  port = 80
+  force_https = true  # optional
+
+[[services.ports]]
+  handlers = ["tls", "http"]
+  port = 443
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
