@@ -432,7 +432,7 @@ public class AppsView extends VerticalLayout {
 		a.getStyle().set("text-decoration", "underline");
 		String rawVersion = app.getCurrentVersion();
 		String displayVersion = rawVersion + (rawVersion.matches("^[0-9].*$") ? "" : " (version number unknown)");
-		String latestVersion = getLatestReleaseVersion();
+		String latestVersion = getLatestReleaseVersion(app.appType);
 		boolean updateRequired = !rawVersion.equals(latestVersion);
 		VerticalLayout versionInfo = new VerticalLayout(a,
 				new Html(
@@ -629,7 +629,10 @@ public class AppsView extends VerticalLayout {
 		return stringBuilder.toString();
 	}
 
-	private String getLatestReleaseVersion() {
-		return VersionInfo.fastFetchLatestReleaseVersion("https://api.github.com/repos/owlcms/owlcms4/releases");
+	private String getLatestReleaseVersion(AppType appType) {
+		return switch(appType) {
+			case TRACKER -> VersionInfo.fastFetchLatestReleaseVersion("https://api.github.com/repos/jflamy/owlcms-tracker/releases");
+			default -> VersionInfo.fastFetchLatestReleaseVersion("https://api.github.com/repos/owlcms/owlcms4/releases");
+		};
 	}
 }
