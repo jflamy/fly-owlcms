@@ -340,12 +340,17 @@ public class AppsView extends VerticalLayout {
 				    """;
 			    case PUBLICRESULTS -> """
 				    <div style="line-height: 1.4; width: 45em;">
-				    PUBLICRESULTS is used to view scoreboards on phones (any device connected to the internet).<br><u>You don't need PUBLICRESULTS if you don't want remote scoreboards.</u> Set a Shared Key below to protect communications between OWLCMS and PUBLICRESULTS.
+				    PUBLICRESULTS is used to view scoreboards on phones (any device connected to the internet).
+					<br><u>You don't need PUBLICRESULTS if you don't want remote scoreboards.</u>
+					<br>The Shared Key set at the bottom of this page protects the communications between OWLCMS and PUBLICRESULTS.
 				    </div>
 				    """;
 			case TRACKER -> """
 					<div style="line-height: 1.4; width: 45em;">
-					TRACKER is used to view scoreboards on phones (any device connected to the internet). TRACKER is the next generation of PUBLICRESULTS, and is currently in preview mode.<br><u>You don't need TRACKER if you don't want remote scoreboards.</u> If you set a Shared Key below, TRACKER will be protected in its communications with OWLCMS.
+					TRACKER is used to view scoreboards on phones (any device connected to the internet), to provide real-time video overlays, and to produce fancy documents. TRACKER is the next generation of PUBLICRESULTS, and is currently in preview mode.
+					<br><u>You don't need TRACKER if you don't want remote scoreboards.</u> 
+					<br>The Shared Key set at the bottom of this page protects the communications between OWLCMS and TRACKER.
+				    </div>
 					""";
 			default -> "";
 		};
@@ -509,8 +514,11 @@ public class AppsView extends VerticalLayout {
 		Html explanation = new Html(
 			"""
 			<div style="line-height: 1.4; width: 45em;">
-			Set the shared key to protect communications from OWLCMS to the other applications. You need to share it once but can change it whenever you want.
-			If OWLCMS is running on a laptop, copy the key to the Connections configuration in the OWLCMS settings.
+			Set the shared key to protect communications from OWLCMS to the other applications.
+			This is done once initially, and the same key is used for both PUBLICRESULTS and TRACKER.
+			You can change it later, but you will need to restart the applications.
+			<br />
+			NOTE: If OWLCMS is running on a laptop, copy the key to the Connections configuration in the OWLCMS settings.
 			</div>
 			""");
 		contentDiv.add(explanation);
@@ -520,6 +528,7 @@ public class AppsView extends VerticalLayout {
 		controlsLayout.setMargin(false);
 		controlsLayout.setPadding(false);
 		controlsLayout.setAlignItems(Alignment.CENTER);
+		controlsLayout.getStyle().set("margin-top", "1em");
 		
 		TextField sharedKeyField = new TextField();
 		sharedKeyField.setTitle("Shared string between owlcms and public results");
