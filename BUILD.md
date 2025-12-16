@@ -15,10 +15,10 @@ The production build and deploy of this application is done using the fly CLI.
 - Go to the github repository and create a release with the new tag
 
 For development, the application is like all the other owlcms apps, but must run on Linux
-
-- If running on Windows, open a WSL window and go to the git repository
+  - start a wsl shell, cd to the git directory
   - run `code .` to start VSCode (at the bottom left you should see it is running on WSL)
-  - Run the `app.owlcms.fly.Main` class.
+  - Switch to a Java profile in the gear setting at the bottom
+  - You can then start fly-owlcms from the run menu (left pointing triangle in the left hand-side bar)
   
   
 
