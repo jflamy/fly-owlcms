@@ -14,7 +14,7 @@
 		<maven.compiler.target>17</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<vaadin.version>24.3.3</vaadin.version>
+		<vaadin.version>24.9.7</vaadin.version>
 		<jetty.version>12.0.5</jetty.version>
 	</properties>
 
@@ -109,7 +109,7 @@
 		<dependency>
 			<groupId>com.maxmind.geoip2</groupId>
 			<artifactId>geoip2</artifactId>
-			<version>4.2.0</version>
+			<version>4.4.0</version>
 		</dependency>
 
 		<!-- version checking -->
@@ -153,6 +153,12 @@
 		<groupId>com.vdurmont</groupId>
 		<artifactId>semver4j</artifactId>
 		<version>3.1.0</version>
+	</dependency>
+
+	<dependency>
+		<groupId>org.apache.commons</groupId>
+		<artifactId>commons-lang3</artifactId>
+		<version>3.14.0</version>
 	</dependency>
 
 </dependencies>

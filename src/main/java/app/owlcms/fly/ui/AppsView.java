@@ -223,10 +223,10 @@ public class AppsView extends VerticalLayout {
 	private VerticalLayout buildIntro() {
 		Html p1 = new Html(
 				"""
-				<div style="width: 60em">
-				This page creates and manages your owlcms applications on the fly.io cloud.
-				</div>
-				""");
+						<div style="width: 60em">
+						This page creates and manages your owlcms applications on the fly.io cloud.
+						</div>
+						""");
 		VerticalLayout intro = new VerticalLayout(p1);
 		intro.setSpacing(false);
 		intro.setPadding(false);
@@ -294,30 +294,30 @@ public class AppsView extends VerticalLayout {
 		appSection.setMargin(false);
 		appSection.setPadding(false);
 		appSection.setAlignItems(Alignment.START);
-		
+
 		// Left column: label
 		NativeLabel label = new NativeLabel(app.appType.toString());
 		label.setWidth(LEFT_LABEL_WIDTH);
 		appSection.add(label);
-		
+
 		// Right column: all content (explanation, version, controls)
 		VerticalLayout contentDiv = new VerticalLayout();
 		contentDiv.setMargin(false);
 		contentDiv.setPadding(false);
 		contentDiv.setSpacing(false);
-		
+
 		// Explanation (add directly, avoid nested VerticalLayout)
 		Html explanation = new Html(getExplanationForAppType(app.appType));
 		contentDiv.add(explanation);
-		
+
 		UI ui = UI.getCurrent();
-		
+
 		// Details and controls row
 		HorizontalLayout controlsLayout = new HorizontalLayout();
 		controlsLayout.setMargin(false);
 		controlsLayout.setPadding(false);
 		controlsLayout.setAlignItems(Alignment.CENTER);
-		
+
 		if (app.created) {
 			showExistingApplication(app, controlsLayout, ui);
 			contentDiv.add(controlsLayout);
@@ -325,34 +325,38 @@ public class AppsView extends VerticalLayout {
 			showNewApplication(app, contentDiv, controlsLayout, ui);
 		}
 		appSection.add(contentDiv);
-		
+
 		Div wrapper = new Div(appSection);
 		wrapper.getStyle().set("margin-bottom", "0");
 		return wrapper;
 	}
-	
+
 	private String getExplanationForAppType(AppType appType) {
-		return switch(appType) {
-			    case OWLCMS -> """
-				    <ul style="line-height: 1.4; width: 45em; margin: 0; padding-left: 1em;">
-				    <li>OWLCMS runs the competition.
-					<li><u>You don't need to create this if you are running OWLCMS locally on a laptop</u> and only want remote scoreboards.
-				    </ul>
-				    """;
-			    case PUBLICRESULTS -> """
-				    <ul style="line-height: 1.4; width: 45em; margin: 0; padding-left: 1em;">
-				    <li>PUBLICRESULTS is used to view scoreboards on phones (any device connected to the internet).
-					<li><u>You don't need PUBLICRESULTS if you don't want remote scoreboards.</u>
-					<li>The Shared Key set at the bottom of this page protects the communications between OWLCMS and PUBLICRESULTS.
-				    </ul>
-				    """;
-			case TRACKER -> """
+		return switch (appType) {
+			case OWLCMS ->
+				"""
 					<ul style="line-height: 1.4; width: 45em; margin: 0; padding-left: 1em;">
-					<li>TRACKER is used to view scoreboards on phones (any device connected to the internet), to provide real-time video overlays, and to produce fancy documents. TRACKER is the next generation of PUBLICRESULTS, and is currently in preview mode.
-					<li><u>You don't need TRACKER if you don't want remote scoreboards.</u> 
-					<li>The Shared Key set at the bottom of this page protects the communications between OWLCMS and TRACKER.
-				    </ul>
-					""";
+						<li>OWLCMS runs the competition.
+						<li><u>You don't need to create this if you are running OWLCMS locally on a laptop</u> and only want remote scoreboards.
+					</ul>
+				""";
+			case PUBLICRESULTS ->
+				"""
+					<ul style="line-height: 1.4; width: 45em; margin: 0; padding-left: 1em;">
+						<li>PUBLICRESULTS is used to view scoreboards on phones (any device connected to the internet).
+						<li><u>You don't need PUBLICRESULTS if you don't want remote scoreboards.</u>
+						<li>The Shared Key set at the bottom of this page protects the communications between OWLCMS and PUBLICRESULTS.
+					</ul>
+				""";
+			case TRACKER ->
+				"""
+					<ul style="line-height: 1.4; width: 45em; margin: 0; padding-left: 1em;">
+						<li><b>TRACKER is in preview mode. You need to run OWLCMS version 64 prerelease on your laptop, and connect with wss://{tracker-app-name}.fly.dev/ws URL</b>
+						<li>TRACKER is used to view scoreboards on phones (any device connected to the internet), to provide real-time video overlays, and to produce fancy documents. TRACKER is the next generation of PUBLICRESULTS, and is currently in preview mode.
+						<li><u>You don't need TRACKER if you don't want remote scoreboards.</u>
+						<li>The Shared Key set at the bottom of this page protects the communications between OWLCMS and TRACKER.
+					</ul>
+				""";
 			default -> "";
 		};
 	}
@@ -361,8 +365,8 @@ public class AppsView extends VerticalLayout {
 		String latestVersion = app.getReferenceVersion();
 		// Version info (use Div to avoid nested VerticalLayout)
 		Html versionHtml = new Html(
-			"""
-				<div>latest available version: %s</div>
+				"""
+					<div>latest available version: %s</div>
 				""".formatted(latestVersion));
 		Div versionInfo = new Div();
 		versionInfo.add(versionHtml);
@@ -370,7 +374,7 @@ public class AppsView extends VerticalLayout {
 		versionInfo.getStyle().set("margin-top", "0.1em");
 		versionInfo.getStyle().set("margin-bottom", "0.1em");
 		contentDiv.add(versionInfo);
-		
+
 		TextField nameField = new TextField("Application Name (without .fly.dev)");
 		nameField.setAllowedCharPattern("[A-Za-z0-9-]");
 		nameField.setValue(app.name);
@@ -410,6 +414,16 @@ public class AppsView extends VerticalLayout {
 							nameField.setInvalid(false);
 							app.name = value.toLowerCase();
 							app.regionCode = serverCombo.getValue().getCode();
+							// If version is unknown, use "latest" for deployment
+							if (latestVersion.contains("unknown")) {
+								VersionInfo updatedInfo;
+								if (app.appType == AppType.TRACKER) {
+									updatedInfo = new VersionInfo("latest", "https://api.github.com/repos/jflamy/owlcms-tracker/releases");
+								} else {
+									updatedInfo = new VersionInfo("latest");
+								}
+								app.setVersionInfo(updatedInfo);
+							}
 							flyCommands.appCreate(app, () -> doListApplications(apps, ui));
 						} catch (NameTakenException e1) {
 							nameField.setErrorMessage(siteName + " is already taken.");
@@ -499,48 +513,48 @@ public class AppsView extends VerticalLayout {
 		sharedKeySection.setMargin(false);
 		sharedKeySection.setPadding(false);
 		sharedKeySection.setAlignItems(Alignment.START);
-		
+
 		// Left column: label
 		NativeLabel label = new NativeLabel("Shared Key");
 		label.setWidth(LEFT_LABEL_WIDTH);
 		sharedKeySection.add(label);
-		
+
 		// Right column: all content (explanation, controls)
 		VerticalLayout contentDiv = new VerticalLayout();
 		contentDiv.setMargin(false);
 		contentDiv.setPadding(false);
 		contentDiv.setSpacing(false);
-		
+
 		// Explanation (add directly, avoid nested VerticalLayout)
 		Html explanation = new Html(
-			"""
-			<ul style="line-height: 1.4; width: 45em; margin: 0; padding-left: 1em;">
-			<li>Set the shared key to protect communications from OWLCMS to the other applications.
-			<li>This is done once initially, and the same key is used for both PUBLICRESULTS and TRACKER.
-			<li>You can change it later, but you will need to restart the applications.
-			<li><u>If OWLCMS is running on a laptop</u>, copy the key to the Connections configuration in the OWLCMS settings.
-			</ul>
-			""");
+				"""
+						<ul style="line-height: 1.4; width: 45em; margin: 0; padding-left: 1em;">
+						<li>Set the shared key to protect communications from OWLCMS to the other applications.
+						<li>This is done once initially, and the same key is used for both PUBLICRESULTS and TRACKER.
+						<li>You can change it later, but you will need to restart the applications.
+						<li><u>If OWLCMS is running on a laptop</u>, copy the key to the Connections configuration in the OWLCMS settings.
+						</ul>
+						""");
 		contentDiv.add(explanation);
-		
+
 		// Controls row
 		HorizontalLayout controlsLayout = new HorizontalLayout();
 		controlsLayout.setMargin(false);
 		controlsLayout.setPadding(false);
 		controlsLayout.setAlignItems(Alignment.CENTER);
 		controlsLayout.getStyle().set("margin-top", "1em");
-		
+
 		TextField sharedKeyField = new TextField();
 		sharedKeyField.setTitle("Shared string between owlcms and public results");
 		sharedKeyField.setPlaceholder("enter a shared string");
 		sharedKeyField.setWidth("15em");
 		sharedKeyField.setValue("");
-		
+
 		Button generateKeyButton = new Button("Generate Shared Key",
 				e -> {
 					sharedKeyField.setValue(generateRandomString(20));
 				});
-		
+
 		Button sharedKeyButton = new Button("Set Shared Key and restart apps",
 				e -> {
 					if (sharedKeyField.getValue() == null || sharedKeyField.getValue().isBlank()) {
@@ -550,23 +564,26 @@ public class AppsView extends VerticalLayout {
 						flyCommands.doSetSharedKey(sharedKeyField.getValue());
 					}
 				});
-		
+
 		controlsLayout.add(sharedKeyField, generateKeyButton, sharedKeyButton);
 		contentDiv.add(controlsLayout);
 		sharedKeySection.add(contentDiv);
-		
+
 		Div wrapper = new Div(sharedKeySection);
 		apps.add(wrapper);
 	}
 
 	private void showApps(Map<AppType, App> appMap, VerticalLayout apps) {
+		if (intro != null) {
+			intro.setVisible(false);
+		}
 		App owlcmsApp = appMap.get(AppType.OWLCMS);
 		App publicApp = appMap.get(AppType.PUBLICRESULTS);
 		App trackerApp = appMap.get(AppType.TRACKER);
 
 		// apps.getStyle().set("margin-top", "1em");
 		apps.add(new Hr());
-		
+
 		Div showOwlcmsApp;
 		if (owlcmsApp != null) {
 			showOwlcmsApp = showApplication(owlcmsApp);
@@ -580,7 +597,7 @@ public class AppsView extends VerticalLayout {
 		}
 		Div showPublicApp;
 		apps.add(new Hr());
-		
+
 		if (publicApp != null) {
 			showPublicApp = showApplication(publicApp);
 			apps.add(showPublicApp);
@@ -593,17 +610,18 @@ public class AppsView extends VerticalLayout {
 		}
 		Div showTrackerApp;
 		apps.add(new Hr());
-		
+
 		if (trackerApp != null) {
 			showTrackerApp = showApplication(trackerApp);
 			apps.add(showTrackerApp);
 		} else {
 			trackerApp = new App("", AppType.TRACKER, getCurrentRegion(), "stable", null, null);
-			trackerApp.setVersionInfo(new VersionInfo("stable", "https://api.github.com/repos/jflamy/owlcms-tracker/releases"));
+			trackerApp.setVersionInfo(
+					new VersionInfo("stable", "https://api.github.com/repos/jflamy/owlcms-tracker/releases"));
 			showTrackerApp = showApplication(trackerApp);
 			apps.add(showTrackerApp);
 		}
-		
+
 		// Show shared key section after TRACKER
 		apps.add(new Hr());
 		showSharedKey(apps);
@@ -630,9 +648,11 @@ public class AppsView extends VerticalLayout {
 	}
 
 	private String getLatestReleaseVersion(AppType appType) {
-		return switch(appType) {
-			case TRACKER -> VersionInfo.fastFetchLatestReleaseVersion("https://api.github.com/repos/jflamy/owlcms-tracker/releases");
-			default -> VersionInfo.fastFetchLatestReleaseVersion("https://api.github.com/repos/owlcms/owlcms4/releases");
+		return switch (appType) {
+			case TRACKER -> VersionInfo
+					.fastFetchLatestReleaseVersion("https://api.github.com/repos/jflamy/owlcms-tracker/releases");
+			default ->
+				VersionInfo.fastFetchLatestReleaseVersion("https://api.github.com/repos/owlcms/owlcms4/releases");
 		};
 	}
 }
