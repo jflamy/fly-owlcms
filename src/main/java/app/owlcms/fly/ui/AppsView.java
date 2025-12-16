@@ -56,6 +56,10 @@ public class AppsView extends VerticalLayout {
 	private VerticalLayout apps;
 	private String regionCode;
 	private String clientIpString;
+	
+	// Cache latest versions to avoid multiple fetches
+	private String cachedOwlcmsVersion = null;
+	private String cachedTrackerVersion = null;
 
 	public AppsView() {
 		clientIpString = getClientIp();
@@ -351,8 +355,8 @@ public class AppsView extends VerticalLayout {
 			case TRACKER ->
 				"""
 					<ul style="line-height: 1.4; width: 45em; margin: 0; padding-left: 1em;">
-						<li><b>TRACKER is in preview mode. You need to run OWLCMS version 64 prerelease on your laptop, and connect with wss://{tracker-app-name}.fly.dev/ws URL</b>
-						<li>TRACKER is used to view scoreboards on phones (any device connected to the internet), to provide real-time video overlays, and to produce fancy documents. TRACKER is the next generation of PUBLICRESULTS, and is currently in preview mode.
+						<li><b>TRACKER is in preview mode. For now you need to run OWLCMS version 64 prerelease on your laptop, and configure your public results scoreboard or video data URLs using the websocket format </b><a href="">wss://<i>{tracker-app-name}</i>.fly.dev/ws</a>
+						<li>TRACKER is used to view scoreboards on phones (any device connected to the internet), to provide real-time video overlays, and to produce fancy documents. TRACKER is the next generation of PUBLICRESULTS, and will replace it.
 						<li><u>You don't need TRACKER if you don't want remote scoreboards.</u>
 						<li>The Shared Key set at the bottom of this page protects the communications between OWLCMS and TRACKER.
 					</ul>
@@ -447,7 +451,7 @@ public class AppsView extends VerticalLayout {
 		String rawVersion = app.getCurrentVersion();
 		String displayVersion = rawVersion + (rawVersion.matches("^[0-9].*$") ? "" : " (version number unknown)");
 		String latestVersion = getLatestReleaseVersion(app.appType);
-		boolean updateRequired = !rawVersion.equals(latestVersion);
+		boolean updateRequired = !rawVersion.equals(latestVersion) && !latestVersion.contains("unknown");
 		VerticalLayout versionInfo = new VerticalLayout(a,
 				new Html(
 						"""
@@ -590,8 +594,7 @@ public class AppsView extends VerticalLayout {
 			apps.add(showOwlcmsApp);
 		} else {
 			owlcmsApp = new App("", AppType.OWLCMS, getCurrentRegion(), "stable", null, null);
-			String v = owlcmsApp.getReferenceVersion();
-			owlcmsApp.setVersionInfo(new VersionInfo(v));
+			owlcmsApp.setVersionInfo(new VersionInfo("stable"));
 			showOwlcmsApp = showApplication(owlcmsApp);
 			apps.add(showOwlcmsApp);
 		}
@@ -603,8 +606,7 @@ public class AppsView extends VerticalLayout {
 			apps.add(showPublicApp);
 		} else {
 			publicApp = new App("", AppType.PUBLICRESULTS, getCurrentRegion(), "stable", null, null);
-			String v = publicApp.getReferenceVersion();
-			publicApp.setVersionInfo(new VersionInfo(v));
+			publicApp.setVersionInfo(new VersionInfo("stable"));
 			showPublicApp = showApplication(publicApp);
 			apps.add(showPublicApp);
 		}
@@ -649,10 +651,20 @@ public class AppsView extends VerticalLayout {
 
 	private String getLatestReleaseVersion(AppType appType) {
 		return switch (appType) {
-			case TRACKER -> VersionInfo
-					.fastFetchLatestReleaseVersion("https://api.github.com/repos/jflamy/owlcms-tracker/releases");
-			default ->
-				VersionInfo.fastFetchLatestReleaseVersion("https://api.github.com/repos/owlcms/owlcms4/releases");
+			case TRACKER -> {
+				if (cachedTrackerVersion == null) {
+					cachedTrackerVersion = VersionInfo
+							.fastFetchLatestReleaseVersion("https://api.github.com/repos/jflamy/owlcms-tracker/releases");
+				}
+				yield cachedTrackerVersion;
+			}
+			default -> {
+				if (cachedOwlcmsVersion == null) {
+					cachedOwlcmsVersion = VersionInfo
+							.fastFetchLatestReleaseVersion("https://api.github.com/repos/owlcms/owlcms4/releases");
+				}
+				yield cachedOwlcmsVersion;
+			}
 		};
 	}
 }
